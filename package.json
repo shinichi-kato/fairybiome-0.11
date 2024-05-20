@@ -1,0 +1,32 @@
+{
+  "name": "fairybiome",
+  "version": "0.11.0",
+  "private": true,
+  "browserslist": [
+    ">0.25%",
+    "not dead"
+  ],
+  "dependencies": {
+    "@emotion/react": "^11.11.4",
+    "@emotion/styled": "^11.11.5",
+    "@mui/material": "^5.15.18",
+    "firebase": "^10.12.0",
+    "gatsby": "^5.13.5",
+    "gatsby-source-filesystem": "^5.13.1",
+    "gatsby-transformer-json": "^5.13.1",
+    "mathjs": "^12.4.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "scripts": {
+    "develop": "gatsby develop",
+    "build": "gatsby build",
+    "serve": "gatsby serve",
+    "post-update": "echo \"codesandbox preview only, need an update\" && yarn upgrade --latest",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.0",
+    "worker-loader": "^3.0.8"
+  }
+}
