@@ -1,0 +1,13 @@
+{
+    "timestamp": ["2024-01-13","22:13:00"],
+    "script": [
+        "with {?!greeting}",
+        "avatar peace",
+        "user こんにちは",
+        "cheer 今日は！{+greeting}",
+        "",
+        "user こんばんは",
+        "cheer こんばんは！{+greeting}"
+    ]
+
+}

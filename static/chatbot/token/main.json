@@ -1,0 +1,20 @@
+{
+    "description": "説明",
+    "author": "system",
+    "avatarDir": "default",
+    "backgroundColor": "#de53a1",
+    "interval": {
+        "max":  5000,
+        "min":  1200
+    },
+    "response": {
+        "minIntensity": 0.3
+    },
+    "memory": {
+        "{BOT_NAME}": "チャットボット",
+        "{I}": ["私"],
+        "{YOU}": ["あなた"],
+        "{AWAKENING_HOUR}": 7,
+        "{BEDTIME_HOUR}": 21
+    }
+}

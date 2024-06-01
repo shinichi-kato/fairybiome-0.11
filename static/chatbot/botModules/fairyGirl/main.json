@@ -1,0 +1,26 @@
+{
+    "description": "説明",
+    "author": "system",
+    "avatarDir": "fairy-girl",
+    "backgroundColor": "#de53a1",
+    "updatedAt": null,
+    "memory": {
+        "{BOT_NAME}": ["ティピカ"],
+        "{I}": ["私"],
+        "{YOU}": ["あなた"],
+        "{AWAKENING_HOUR}": [7],
+        "{BEDTIME_HOUR}": [21],
+        "{BOT_NAME_GENERATOR}": "",
+        "{RESPONSE_INTERVALS}":[300,400]
+    },
+    "alarms": {
+        "{ALARM_MONDAY}": {
+            "year": null,
+            "month": null,
+            "date": null,
+            "day": "Monday",
+            "hour": null,
+            "minute": null
+        }
+    }
+}
