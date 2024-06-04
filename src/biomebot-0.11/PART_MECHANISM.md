@@ -1,16 +1,22 @@
-# FairyBiome-0.11
+FairyBiome-0.11 パートの動作機序
+=======================================
 
-## パートの動作機序
-### パートの動作に影響を及ぼすパラメータ
+## パートの動作に影響を及ぼすパラメータ
 
-#### ACTIVATION
+### ACTIVATION
 {ACTIVATION} 0.2,1.2,1.0,0.2,0.2
-パートが動作するたびに現在の{ACTIVITY}値が0でなければ{ACTIVATION}のうちランダムに一つが選ばれ、パートの出力はtfidfのスコアと{ACTIVITY}の積になる。そのため{ACTIVITY}値が1より大きい場合は他のパートよりも優先して発火する確率が高くなる。これにより動作する/しないの挙動にランダム性が導入される。複数のパートが動作して最も出力が大きかったパートは活性に移行し、残りの全パートは{ACTIVITY}値を0にして不活性になる。
+パートには活性状態、不活性状態がある。これをpart内の変数{ACTIVATION_LEVEL}で管理する。
+パートは初期に不活性状態で{ACTIVATION_LEVEL}は0である。
+この状態デパートが動作するたびに現在の{ACTIVATION_LEVEL}が0であれば{ACTIVATION}のうちランダムに一つが選ばれ、パートの出力はtfidfのスコアと{ACTIVATINO_LEVEL}の積になる。そのため{ACTIVATION_LEVEL}値が1より大きい場合は他のパートよりも優先して発火する確率が高くなる。これにより動作する/しないの挙動にランダム性が導入される。出力文字列の中に{DEACTIVATE}が明示されたら{ACTIVATION_LEVEL}は0になる。
+このパートを排他的に動作させたければ10など他とくらべてより大きな値を設定する。
 
+### FORCED_ACTIVATION
+{FORCED_ACTIVATION} 10,8
+外部からこのパートをactivateする場合、{ACTIVATION_LEVEL}は{FORCED_ACTIVATION}から選ばれる。
 
-#### RETENTION
+### RETENTION
 {RETENTION} 0.8
-一旦活性化状態に移行したパートは{ACTIVITY}値が記憶され、以降も活性な状態がある期間持続する。その期間を決めるため、活性化状態の間はパートが動作するたびに{ACTIVITY}値とRETENTIONの積を取り、それを次の{ACTIVITY}値とする。{ACTIVITY}が0.1を下回ったら不活性状態に移行する
+一旦活性化状態に移行したパートは{ACTIVATION_LEVEL}値が記憶され、以降も活性な状態がある期間持続する。その期間を決めるため、活性化状態の間はパートが動作するたびに{ACTIVATION_LEVEL}は{ACTIVATION_LEVEL}と{RETENTION}の積を取り、それを次の{ACTIVATION_LEVEL}値とする。{ACTIVATION_LEVEL}が0.1を下回ったら不活性状態に移行する
 
 ## テキストのエンコード
 入出力文字列は内部的にNode列に変換して扱う。各Nodeはsurface(表層形)とtokenからなり、以下のように表す。
@@ -195,8 +201,8 @@ token     {I}\tは  0233   0003\tと      3434\tに   4433     \tよ   \t。
 {
     '{PREFILLER}':[],
     '{POSTFILLER}':[],
-    '{FIRST_PERSON}:[],
-    '{SECOND_PERSON}:[],
+    '{I}:[],
+    '{YOU}:[],
 
 }
 

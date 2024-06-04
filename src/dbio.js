@@ -11,6 +11,8 @@
       schemeName,
       moduleName: 'main',
       updatedAt: "yyyy/mm/dd hh:mm/ss",
+      author: "",
+      description: "",
       avatarDir,
       backgroundColor,
       alarms: {
@@ -23,7 +25,7 @@
 
  ## part
   {
-    fsId, 
+    fsId,
     data: {
       botId,
       schemeName,
@@ -42,12 +44,13 @@
   }
   ```
   すべてのチャットボットのスクリプトを行単位で記憶
+
   # システムタグ
-  systemTags {
+  memory {
     botId,
     key,value
   }
-  
+
   システムタグの内容は以下の通り
   memory: {
       RESPONSE_INTERVALS: [],
@@ -55,6 +58,9 @@
       BEDTIME_HOUR: [],
       I: [],
       YOU: [],
+      BOT_NAME: [],
+      BOT_NAME_GENERATOR: [],
+      ON_START:[],
       "USER.Name": [],
       "USER.Nickname": [],
       "USER.Favorite_food.Name": [],
@@ -77,41 +83,45 @@
       "BOT.mental_condition": [],
     }
 
-  # 永続タグ
-  ```
-  persistentTags {
-    botId,
-    key,value
-  }
-  ```
+
 */
 
-import Dexie from "dexie";
+import Dexie from 'dexie';
 
-class dbio {
+/**
+ * dbio class
+ */
+export class Dbio {
+  /**
+   *
+   */
   constructor() {
     this.db = new Dexie('Biomebot-0.11');
     this.db.version(1).stores({
-      botModules: "fsId, data.botId,data.schemeName",
-      scripts: "++id,partId",
-      systemTags: "[botId+key]",
-      persistentTags: "[botId+key]"
-    })
+      botModules: 'fsId, [data.botId+data.moduleName]',
+      scripts: '++id,partId',
+      memory: '++id, [botId+key]',
+    });
   }
 
-  async getDIr(botId){
+   /**
+   * チャットボットデータ有無の判定
+   * @param {String} botId チャットボットのid
+   * @return {Boolean} botIdのデータが存在するかどうか
+   */
+  async getDIr(botId) {
     // -------------------------------------------------------
     // botIdで指定されたmainと少なくとも１つのpartが存在する
     // dirを返す。既存のbotが存在するかを確認できる。
 
-    const s = await this.db.mains.where({botId:botId}).first();
-    const p = await this.db.parts.where({botID:botId}).first();
+    const s = await this.db.mains.where({botId: botId}).first();
+    const p = await this.db.parts.where({botId: botId}).first();
 
-    if(!!s && !!p){
+    if (!!s && !!p) {
       return true;
     }
     return false;
   }
 }
 
-export const db = new dbio();
+export const db = new Dbio();

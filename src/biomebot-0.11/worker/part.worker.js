@@ -1,10 +1,8 @@
 /*
-biomebot main worker
+biomebot part worker
 ==================================
 
-main workerは起動するチャットボットの選択、データ要求、起動から
-チャットボットの動作までを管理する。
-
+part workerはチャットボットの各会話出力を行う
 
 # 起動の手順
 
@@ -33,43 +31,35 @@ main はsummonが指定されていた場合{ON_SUMMON}、そうでない場合{
 
 
 */
-import {main} from './main.core';
+import {part} from './part.core';
 
 onmessage = (event) => {
   const action = event.data;
-  console.log('mainWorker recieved', action);
+  console.log('partWorker recieved', action);
   switch (action.type) {
-    case 'standby': {
-      main.standby(action).then((r) => {
-        postMessage({type: 'standby', ...r});
-      });
-      break;
-    }
     case 'deploy': {
-      main.deploy(action).then((result) => {
+      part.deploy(action).then((result) => {
         if (result) {
           postMessage({type: 'deployed'});
+        } else {
+          postMessage({type: 'deployError'});
         }
       });
+
       break;
     }
 
     case 'run': {
-      main.run(action).then();
-      break;
-    }
-
-    case 'input': {
-      main.recieve(action);
+      part.run(action).then();
       break;
     }
 
     case 'kill': {
-      main.kill();
+      part.kill();
       break;
     }
 
     default:
-      throw new Error(`mainWorker: invalid action ${action.type}`);
+      throw new Error(`partWorker: invalid action ${action.type}`);
   }
 };

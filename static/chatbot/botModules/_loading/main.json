@@ -1,7 +1,7 @@
 {
     "description": "説明",
     "author": "system",
-    "avatarDir": "fairy-girl",
+    "avatarDir": "default",
     "backgroundColor": "#de53a1",
     "updatedAt": "2024-06-01T06:04:05.000Z",
     "memory": {
@@ -10,7 +10,7 @@
         "{YOU}": ["あなた"],
         "{AWAKENING_HOUR}": [7],
         "{BEDTIME_HOUR}": [21],
-        "{BOT_NAME_GENERATOR}": ["シズク","カスミ","メノウ","リン","ヒスイ","サクラ"],
+        "{BOT_NAME_GENERATOR}": ["SYSTEM"],
         "{RESPONSE_INTERVALS}":[300,400],
         "{ON_START}": ["sleep","greeting","offStage"],
         "{ON_SUMMON}": ["greeting"]

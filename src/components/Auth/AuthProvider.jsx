@@ -4,9 +4,9 @@ AuthProvider
   Authの管理では、firebaseのauth(a)、サインインで取得できるユーザ情報(u)、
   dexie上に記憶したユーザ設定(p)の3つの情報を操作する。
 
-  authState               a  u  p   状態                      handler 
+  authState               a  u  p   状態                      handler
   ----------------------------------------------------------------------------
-  init                    -- -- --  初期状態                   
+  init                    -- -- --  初期状態
   disconnected            NG -- --  firebase接続に失敗した
   connected               G  -- --  firebaseに接続した
   ↓
@@ -18,7 +18,7 @@ AuthProvider
   waitingSetting                    処理まち
   ready                   G  G  G   a,u,pが揃っている         userPropChange
   ----------------------------------------------------------------------------
-  
+
   user: {
     email
   }
@@ -32,15 +32,16 @@ AuthProvider
 
 */
 
-import React, { useEffect, useReducer, useRef, createContext } from 'react';
+import React, {useEffect, useReducer, useRef, createContext} from 'react';
 import {
   onAuthStateChanged,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   updateProfile,
-  getAuth, signOut
+  getAuth,
+  signOut,
 } from 'firebase/auth';
-import { doc, onSnapshot, setDoc } from "firebase/firestore";
+import {doc, onSnapshot, setDoc} from 'firebase/firestore';
 
 import Landing from '../Landing';
 import SignDialog from './SignDialog';
@@ -53,19 +54,26 @@ const MESSAGE_MAP = {
   'configuration-not-found': 'firebaseのmail/password認証を有効にしてください',
   'invalid-login-credentials': 'ユーザが登録されていません',
   'email-already-in-use': 'ユーザは登録済みです',
-  'Missing or insufficient permissions': 'firestoreのルールを読み書き可能に変更してください',
+  'Missing or insufficient permissions':
+    'firestoreのルールを読み書き可能に変更してください',
 };
 
 const initialState = {
   auth: undefined,
   user: undefined,
-  userProps: {backgroundColor: '#cccccc',avatarDir: ""},
+  userProps: {backgroundColor: '#cccccc', avatarDir: ''},
   authState: 'init',
   error: undefined,
 };
 
+/**
+ * reducer
+ * @param {Object} state 直前のstate
+ * @param {Object} action stateに対する操作
+ * @return {Object} 次のstate
+ */
 function reducer(state, action) {
-  console.log("authProvider",action,state.error)
+  console.log('authProvider', action, state.error);
   switch (action.type) {
     case 'connect': {
       const a = action.auth;
@@ -74,14 +82,14 @@ function reducer(state, action) {
           ...initialState,
           auth: a,
           authState: 'connected',
-        }
+        };
       } else {
         return {
           ...initialState,
           auth: false,
           authState: 'disconnected',
           error: MESSAGE_MAP['disconnected'],
-        }
+        };
       }
     }
 
@@ -92,14 +100,14 @@ function reducer(state, action) {
           ...state,
           user: u,
           authState: 'signedIn',
-          error: null
-        }
+          error: null,
+        };
       } else {
         return {
           ...state,
           user: false,
           authState: 'SignDialog:open',
-        }
+        };
       }
     }
 
@@ -111,13 +119,13 @@ function reducer(state, action) {
           userProps: p,
           authState: 'ready',
           error: null,
-        }
+        };
       } else {
         return {
           ...state,
           userProps: {...initialState.userProps},
           authState: 'UserSettingsDialog:open',
-        }
+        };
       }
     }
 
@@ -126,14 +134,14 @@ function reducer(state, action) {
         ...state,
         authState: 'SignDialog:open',
         error: null,
-      }
+      };
     }
-    
+
     case 'SignDialog:waiting': {
       return {
         ...state,
-        authState: 'SignDialog:waiting'
-      }
+        authState: 'SignDialog:waiting',
+      };
     }
 
     case 'UserSettingsDialog:open': {
@@ -141,14 +149,14 @@ function reducer(state, action) {
         ...state,
         authState: 'UserSettingsDialog:open',
         error: null,
-      }
+      };
     }
 
     case 'UserSettingsDialog:waiting': {
       return {
         ...state,
-        authState: 'UserSettingsDialog:waiting'
-      }
+        authState: 'UserSettingsDialog:waiting',
+      };
     }
 
     case 'UserSettingsDialog:updated': {
@@ -157,14 +165,14 @@ function reducer(state, action) {
         userProps: action.userProps,
         authState: 'UserSettingsDialog:updated',
         error: null,
-      }
+      };
     }
 
     case 'error': {
       return {
         ...state,
         error: MESSAGE_MAP[action.errorCode] || action.errorCode,
-      }
+      };
     }
 
     default:
@@ -172,7 +180,14 @@ function reducer(state, action) {
   }
 }
 
-export default function AuthProvider({ firebase, firestore, children }) {
+/**
+ *
+ * @param {Object} firebase firebaseオブジェクト
+ * @param {Object} firestore firestoreオブジェクト
+ * @param {JSX.Element} このcontectを作用させるkra
+ * @return {JSX.Element} provider
+ */
+export default function AuthProvider({firebase, firestore, children}) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const unsubscribeRef = useRef();
   const uid = state.user?.uid;
@@ -185,25 +200,24 @@ export default function AuthProvider({ firebase, firestore, children }) {
     if (firebase) {
       const auth = getAuth(firebase);
       dispatch({
-        type: "connect",
-        auth: auth
+        type: 'connect',
+        auth: auth,
       });
 
       unsubscribeRef.current = onAuthStateChanged(auth, (user) => {
-        console.log("onauthStateChanged",user)
+        console.log('onauthStateChanged', user);
         dispatch({
           type: 'authStateChange',
-          user: user
+          user: user,
         });
       });
     }
 
     return () => {
-      if (unsubscribeRef.current) { unsubscribeRef.current(); }
-    }
-
-
-
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+      }
+    };
   }, [firebase]);
 
   // ----------------------------------------------------------
@@ -213,32 +227,38 @@ export default function AuthProvider({ firebase, firestore, children }) {
 
   useEffect(() => {
     let unsubscribe = null;
-    if(uid){
-      const docRef=doc(firestore, "users", uid);
-      unsubscribe = onSnapshot(docRef,snap=>{
-        if(snap.exists()){
-          const data = snap.data();
-          if(data.backgroundColor!==state.userProps.backgroundColor || data.avatarDir!==state.userProps.avatarDir){
-            dispatch({
-              type: 'userPropsChange',
-              userProps: data 
-            })
-    
+    if (uid) {
+      const docRef = doc(firestore, 'users', uid);
+      unsubscribe = onSnapshot(
+        docRef,
+        (snap) => {
+          if (snap.exists()) {
+            const data = snap.data();
+            if (
+              data.backgroundColor !== state.userProps.backgroundColor ||
+              data.avatarDir !== state.userProps.avatarDir
+            ) {
+              dispatch({
+                type: 'userPropsChange',
+                userProps: data,
+              });
+            }
           }
+        },
+        (error) => {
+          dispatch({
+            type: 'error',
+            errorCode: error.message,
+          });
         }
-      },error => {
-        dispatch({
-          type: 'error',
-          errorCode: error.message
-        })
-      })
+      );
     }
 
     return () => {
       if (unsubscribe) {
         unsubscribe();
       }
-    }
+    };
   }, [uid, firestore, state.user, state.userProps]);
 
   // -----------------------------------------------------------
@@ -247,17 +267,21 @@ export default function AuthProvider({ firebase, firestore, children }) {
   // emailとpasswordを用い、作成が失敗した(emailが登録済み、
   // パスワードが短すぎる等)の場合入力し直しを促す
   //
-
+  /**
+   *
+   * @param {String} email email文字列
+   * @param {String} password password文字列
+   */
   function handleSignUp(email, password) {
-    dispatch({ type: 'SignDialog:waiting' });
+    dispatch({type: 'SignDialog:waiting'});
     createUserWithEmailAndPassword(state.auth, email, password)
       // 成功した場合はonAuthStateChangedがトリガされる
       .then()
       .catch((error) => {
         dispatch({
           type: 'error',
-          errorCode: error.message
-        })
+          errorCode: error.message,
+        });
       });
   }
 
@@ -266,23 +290,27 @@ export default function AuthProvider({ firebase, firestore, children }) {
   // ログイン
   // emailとpasswordを用いてログインを試みる
   //
-
+  /**
+   *
+   * @param {String} email eail文字列
+   * @param {String} password password文字列
+   */
   function handleSignIn(email, password) {
     // dispatch({ type: 'SignDialog:waiting' });
     signInWithEmailAndPassword(state.auth, email, password)
-      .then(userCredential => {
-        console.log(userCredential)
+      .then((userCredential) => {
+        console.log(userCredential);
         dispatch({
           type: 'authStateChange',
-          user: userCredential.user
+          user: userCredential.user,
         });
       })
       // 成功した場合はonAuthStateChangedがトリガされる
       .catch((error) => {
         dispatch({
           type: 'error',
-          errorCode: error.message
-        })
+          errorCode: error.message,
+        });
       });
   }
 
@@ -290,9 +318,11 @@ export default function AuthProvider({ firebase, firestore, children }) {
   //
   // サインアウト
   //
-
+  /**
+   *
+   */
   function handleSignOut() {
-    dispatch({ type: 'SignDialog:waiting' });
+    dispatch({type: 'SignDialog:waiting'});
     signOut(state.auth);
     // onAuthStateChangeがトリガされる
   }
@@ -300,7 +330,7 @@ export default function AuthProvider({ firebase, firestore, children }) {
   // -----------------------------------------------------------
   //
   //  ユーザ情報の更新
-  //  
+  //
   // 基本のユーザ情報(displayName)はauthを利用し、
   // 追加のユーザ情報(avatarDir, backgroundColor)はfirestoreに格納する。
   // firestoreのコレクション構成は以下の通り。
@@ -310,29 +340,31 @@ export default function AuthProvider({ firebase, firestore, children }) {
   //    └ privateLogs コレクション
   //           └ message ドキュメント {timestamp, message}
 
+  /**
+   *
+   * @param {Object} data backgroundColor,avatarDirからなるobj
+   */
   function handleChangeUserSettings(data) {
-    dispatch({ type: 'UserSettingsDialog:waiting' });
+    dispatch({type: 'UserSettingsDialog:waiting'});
 
-    updateProfile(state.auth.currentUser, { displayName: data.displayName })
+    updateProfile(state.auth.currentUser, {displayName: data.displayName})
       .then(() => {
-        const docRef = doc(firestore, "users", uid);
+        const docRef = doc(firestore, 'users', uid);
         setDoc(docRef, {
           backgroundColor: data.backgroundColor,
           avatarDir: data.avatarDir,
         })
-          .then(() => { 
-            dispatch({})
+          .then(() => {
+            dispatch({});
             // listernerでstateが書き換えられる
           })
-          .catch(error => {
-            dispatch({ type: 'error', errorCode: error.message })
+          .catch((error) => {
+            dispatch({type: 'error', errorCode: error.message});
           });
-
       })
-      .catch(error => {
-        dispatch({ type: 'error', errorCode: error.message })
-      })
-
+      .catch((error) => {
+        dispatch({type: 'error', errorCode: error.message});
+      });
   }
 
   const as = state.authState;
@@ -341,28 +373,27 @@ export default function AuthProvider({ firebase, firestore, children }) {
       value={{
         userProps: state.userProps,
         uid: state.user?.uid,
-        handleSignOut: handleSignOut
+        handleSignOut: handleSignOut,
       }}
     >
-      {
-        as === 'ready' ? children :
-          as.startsWith('SignDialog') ?
-            <SignDialog
-              authState={state}
-              handleSignOut={handleSignOut}
-              handleSignUp={handleSignUp}
-              handleSignIn={handleSignIn}
-            /> :
-            as.startsWith('UserSettingsDialog')?
-              <UserSettingsDialog
-                authState={state}
-                handleSignOut={handleSignOut}
-                handleChangeUserSettings={handleChangeUserSettings}
-              /> :
-              <Landing
-                authState={state}
-              />
-      }
+      {as === 'ready' ? (
+        children
+      ) : as.startsWith('SignDialog') ? (
+        <SignDialog
+          authState={state}
+          handleSignOut={handleSignOut}
+          handleSignUp={handleSignUp}
+          handleSignIn={handleSignIn}
+        />
+      ) : as.startsWith('UserSettingsDialog') ? (
+        <UserSettingsDialog
+          authState={state}
+          handleSignOut={handleSignOut}
+          handleChangeUserSettings={handleChangeUserSettings}
+        />
+      ) : (
+        <Landing authState={state} />
+      )}
     </AuthContext.Provider>
-  )
+  );
 }
