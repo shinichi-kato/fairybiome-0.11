@@ -144,10 +144,12 @@ const initialState = {
   botState: 'init',
   numOfDeployed: 0,
   numOfModules: 0,
-  botPanel: {
+  botRepr: {
+    displayName: '',
     avatarDir: 'default',
     avatar: 'null',
     backrgoundColor: '#cccccc',
+    botId: null,
   },
 
   channel: null,
@@ -174,10 +176,12 @@ function reducer(state, action) {
         botState: 'init',
         numOfDeployed: 0,
         numOfModules: action.numOfModules,
-        botPanel: {
+        botRepr: {
+          displayName: '',
           avatarDir: 'default',
           avatar: 'emerging',
           backrgoundColor: '#cccccc',
+          botId: action.botId,
         },
         channel: state.channel,
       };
@@ -188,13 +192,15 @@ function reducer(state, action) {
       // mainはavtarDir,backgroundColorも報告
       const deployed = state.numOfDeployed + 1;
       const completed = deployed === state.numOfModules;
+      const botRepr = action.botRepr || state.botRepr;
+
       if (completed) {
         return {
           ...state,
           botState: 'deploying',
           numOfDeployed: deployed,
-          botPanel: {
-            ...state.botPanel,
+          botRepr: {
+            ...botRepr,
             avatar: `emerging${deployed % 4}`,
           },
         };
@@ -203,10 +209,8 @@ function reducer(state, action) {
           ...state,
           botState: 'deployed',
           numOfDeployed: deployed,
-          botPanel: {
-            avatarDir: action.avatarDir || state.avatarDir,
-            backgroundColor: action.backgroundColor || state.backgroundColor,
-            avatar: `emerged`,
+          botRepr: {
+            ...botRepr,
           },
         };
       }
@@ -222,8 +226,8 @@ function reducer(state, action) {
     case 'changeAvatar': {
       return {
         ...state,
-        botPanel: {
-          ...state.botPanel,
+        botRepr: {
+          ...state.botRepr,
           avatar: action.avatar,
         },
       };
@@ -236,7 +240,6 @@ function reducer(state, action) {
 
 /**
  * Biomebot Provider
- * @param {Object} props - The component props.
  * @param {Object} props.firestore firestore object
  * @param {Boolean} props.summon チャットボットを強制的に起動する場合に指定
  * @param {string} props.schemeName 型式(relativeDir)を指定する場合(optional)
@@ -336,6 +339,7 @@ export default function BiomebotProvider({
     <BiomebotContext.Provider
       value={{
         state: state,
+        botRepr: state?.botRepr,
       }}
     >
       {children}

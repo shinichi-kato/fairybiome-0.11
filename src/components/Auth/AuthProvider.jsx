@@ -61,7 +61,11 @@ const MESSAGE_MAP = {
 const initialState = {
   auth: undefined,
   user: undefined,
-  userProps: {backgroundColor: '#cccccc', avatarDir: ''},
+  userProps: {
+    backgroundColor: '#cccccc',
+    avatarDir: '',
+    avatar: 'peace',
+  },
   authState: 'init',
   error: undefined,
 };
@@ -116,7 +120,10 @@ function reducer(state, action) {
       if (p) {
         return {
           ...state,
-          userProps: p,
+          userProps: {
+            ...p,
+            avatar: 'peace',
+          },
           authState: 'ready',
           error: null,
         };
@@ -162,7 +169,10 @@ function reducer(state, action) {
     case 'UserSettingsDialog:updated': {
       return {
         ...state,
-        userProps: action.userProps,
+        userProps: {
+          ...action.userProps,
+          avatar: 'peace'
+        },
         authState: 'UserSettingsDialog:updated',
         error: null,
       };
@@ -371,7 +381,13 @@ export default function AuthProvider({firebase, firestore, children}) {
   return (
     <AuthContext.Provider
       value={{
-        userProps: state.userProps,
+        userRepr: {
+          avatar: state.userProps.avatar,
+          avatarDir: state.userProps.avatarDir,
+          backgroundColor: state.userProps.backgroundColor,
+          displayName: state.user?.displayName,
+          uid: state.user?.uid,
+        },
         uid: state.user?.uid,
         handleSignOut: handleSignOut,
       }}

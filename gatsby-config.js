@@ -1,4 +1,4 @@
-require("dotenv").config({
+require('dotenv').config({
   path: '.env.local',
 });
 
@@ -13,7 +13,7 @@ module.exports = {
         background_color: `#f7f0eb`,
         theme_color: `#a2466c`,
         display: `standalone`,
-        icon: "static/images/icon.svg",
+        icon: 'static/images/icon.svg',
       },
     },
     {
@@ -35,7 +35,7 @@ module.exports = {
       options: {
         name: `botModules`,
         path: `${__dirname}/static/chatbot/botModules`,
-      }
+      },
     },
     {
       resolve: `gatsby-transformer-json`,
@@ -47,7 +47,8 @@ module.exports = {
   siteMetadata: {
     title: '妖精バイオーム',
     author: '加藤真一',
-    backgroundColorPalette: [ // https://www.ppgpaints.com/color/color-families/neutrals
+    backgroundColorPalette: [
+      // https://www.ppgpaints.com/color/color-families/neutrals
       '#535353', // black
       '#c7b7a1', // neutral
       '#789bc5', // blue
@@ -59,4 +60,4 @@ module.exports = {
     ],
     balloonBackgroundAlpha: 0.8
   },
-}
+};

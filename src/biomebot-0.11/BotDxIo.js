@@ -14,6 +14,7 @@ class BotDxIo extends Dbio {
     this.uploadDxScheme = this.uploadDxScheme.bind(this);
     this.downloadDxScheme = this.downloadDxScheme.bind(this);
     this.downloadDxModule = this.downloadDxModule.bind(this);
+    this.downloadDxScript = this.downloadDxScript.bind(this);
     this.getMemory = this.getMemory.bind(this);
   }
 
@@ -37,17 +38,30 @@ class BotDxIo extends Dbio {
   }
 
   /**
-   * indexedDBにscheme形式で受け取ったデータを保存。
+   * indexedDBにscheme形式で受け取ったデータを保存。memory,scriptを含む
    * @param {Object} scheme
    */
   async uploadDxScheme(scheme) {
     // indexedDBへのアップロード。
-    // mainに記載されたmemoryのデータはdb.memoryにコピー
     for (const module of scheme.botModules) {
       await this.db.botModules.put({
-        ...module,
+        ...module.data,
+        script: 'on script db', // moduleの中からscriptを除外
+        moduleId: module.fsId,
       });
 
+      // scriptの内容はdb.scriptに記憶。変更点の追跡が大変なので
+      // 一旦削除し上書きする
+      await this.db.scirpt.where('moduleId').equals(module.fsId).delete();
+      for (const line of module.script) {
+        await this.db.script.add({
+          moduleId: module.fsId,
+          text: line.text,
+          timestamp: line.timestamp,
+        });
+      }
+
+      // mainに記載されたmemoryのデータはdb.memoryにコピー
       const data = module.data;
       if (data.moduleName === 'main') {
         for (const key in data.memory) {
@@ -64,7 +78,8 @@ class BotDxIo extends Dbio {
   }
 
   /**
-   * indexedDBからscheme形式でデータを取得
+   * indexedDBからscheme形式でデータを取得。
+   * script, memoryは含まない
    * @param {String} botId チャットボットのId
    * @return {Object} scheme形式のチャットボットデータ
    */
@@ -75,23 +90,23 @@ class BotDxIo extends Dbio {
     };
 
     // db.memoryの読み込み
-    const memory = {};
-    const mems = await this.db.memory
-      .where(['botId', 'key'])
-      .between([botId, Dexie.minKey], [botId, Dexie.maxKey])
-      .toArray();
+    // const memory = {};
+    // const mems = await this.db.memory
+    //   .where(['botId', 'key'])
+    //   .between([botId, Dexie.minKey], [botId, Dexie.maxKey])
+    //   .toArray();
 
-    for (const mem of mems) {
-      memory[mem.key] = mem.value;
-    }
+    // for (const mem of mems) {
+    //   memory[mem.key] = mem.value;
+    // }
 
     await this.db.botModules
       .where(['data.botId', 'data.moduleName'])
       .between([botId, Dexie.minKey], [botId, Dexie.maxKey])
       .each((snap) => {
-        if (snap.moduleName === 'main') {
-          snap.memory = memory;
-        }
+        // if (snap.moduleName === 'main') {
+        //   snap.memory = memory;
+        // }
         scheme.botModules.push(snap);
         const ts = snap.data.updatedAt;
         if (scheme.updatedAt < ts) {
@@ -103,7 +118,8 @@ class BotDxIo extends Dbio {
   }
 
   /**
-   * moduleNameを指定してbotIdのモジュールを取得
+   * moduleNameを指定してbotIdのモジュールを取得.
+   * memory,scriptは含まない
    * @param {String} botId チャットボットのId
    * @param {String} moduleName モジュール名(file名)
    * @return {Object} 取得したモジュール
@@ -115,6 +131,15 @@ class BotDxIo extends Dbio {
       .equals([botId, moduleName])
       .first();
     return module;
+  }
+
+  /**
+   * moduleIdで指定したスクリプトを全て読み込む
+   * @param {String} moduleId
+   * @return {array} スクリプト[{text,timestamp}]形式
+   */
+  async downloadDxScript(moduleId) {
+    return await this.db.script.where('moduleId').equals(moduleId).toArray();
   }
 
   /**

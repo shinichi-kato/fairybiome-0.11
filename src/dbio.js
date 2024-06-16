@@ -24,13 +24,14 @@
   }
 
  ## part
-  {
+  part {
+    ++id
     fsId,
     data: {
       botId,
       schemeName,
       moduleName,
-      updatedAt: "yyyy/mm/dd hh:mm/ss",
+      updatedAt: ISOString,
     }
   }
   ```
@@ -39,11 +40,16 @@
   ```
   scripts {
     id++,
-    partId,
-    text
+    moduleId, // fsId
+    text,     // avatar text<ecoState>
+    timestamp
   }
   ```
   すべてのチャットボットのスクリプトを行単位で記憶
+  idをfsの方に戻すのは大変。スクリプトが外で編集された後、dxの
+  スクリプトが同じ内容になっているか追跡してupdateするのもかなり大変なので
+  upload時に一旦moduleIdに属するデータは消して上書きする
+
 
   # システムタグ
   memory {
@@ -98,13 +104,13 @@ export class Dbio {
   constructor() {
     this.db = new Dexie('Biomebot-0.11');
     this.db.version(1).stores({
-      botModules: 'fsId, [data.botId+data.moduleName]',
-      scripts: '++id,partId',
+      botModules: '++id, fsId, [data.botId+data.moduleName]',
+      scripts: '++id,botModuleId',
       memory: '++id, [botId+key]',
     });
   }
 
-   /**
+  /**
    * チャットボットデータ有無の判定
    * @param {String} botId チャットボットのid
    * @return {Boolean} botIdのデータが存在するかどうか
@@ -122,6 +128,7 @@ export class Dbio {
     }
     return false;
   }
+
 }
 
 export const db = new Dbio();

@@ -1,7 +1,7 @@
 /*
  signIn, signUpダイアログ
  signIn画面の上にsignUp画面が重なったUIで、signUp画面はzoomで切り替わる。
- 
+
 
  */
 
@@ -19,11 +19,18 @@ import KeyIcon from '@mui/icons-material/Key';
 import CustomInput from './CustomInput';
 import Alert from '@mui/material/Alert';
 
-function EmailInput({title, email, onChange, key}) {
+/**
+ * emailのadornmentがついたsyledインプット
+ * @param {String} props.title inputのタイトル
+ * @param {String} props.email email値
+ * @param {Function} props.onChange email値が変更されたときのcallback
+ * @param {String} props.onChange email値が変更されたときのハンドラ
+ * @return {Element.JSX}
+ */
+function EmailInput({title, email, onChange}) {
   return (
     <CustomInput
       title={title}
-      key={key}
       value={email}
       type='email'
       autoComplete='email'
@@ -33,6 +40,13 @@ function EmailInput({title, email, onChange, key}) {
   );
 }
 
+/**
+ * パスワードのアイコンつきinput
+ * @param {String} props.title インプット上に表示するタイトル
+ * @param {String} props.password パスワード値
+ * @param {Function} props.onChange パスワード変更時のcallback
+ * @return {Element.JSX}
+ */
 function PasswordInput({title, password, onChange}) {
   return (
     <CustomInput
@@ -54,6 +68,12 @@ const initialState = {
   openSignUp: false,
 };
 
+/**
+ * このコンポーネントを制御するreducer
+ * @param {Object} state 直前のstate
+ * @param {Object} action stateに対する操作
+ * @return {Object} 次のstate
+ */
 function reducer(state, action) {
   switch (action.type) {
     case 'openSignUp': {
@@ -112,6 +132,11 @@ const Transition = React.forwardRef(function Transition(props, ref) {
   return <Zoom ref={ref} {...props} />;
 });
 
+/**
+ * サインイン/サインアップダイアログ
+ * @param {Function} props hadleSignIn, handleSignUp ユーザ登録処理
+ * @return {JSX.Element} コンポーネント
+ */
 export default function SignDialog(props) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const authState = props.authState;

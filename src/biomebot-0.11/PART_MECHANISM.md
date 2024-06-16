@@ -7,7 +7,7 @@ FairyBiome-0.11 パートの動作機序
 {ACTIVATION} 0.2,1.2,1.0,0.2,0.2
 パートには活性状態、不活性状態がある。これをpart内の変数{ACTIVATION_LEVEL}で管理する。
 パートは初期に不活性状態で{ACTIVATION_LEVEL}は0である。
-この状態デパートが動作するたびに現在の{ACTIVATION_LEVEL}が0であれば{ACTIVATION}のうちランダムに一つが選ばれ、パートの出力はtfidfのスコアと{ACTIVATINO_LEVEL}の積になる。そのため{ACTIVATION_LEVEL}値が1より大きい場合は他のパートよりも優先して発火する確率が高くなる。これにより動作する/しないの挙動にランダム性が導入される。出力文字列の中に{DEACTIVATE}が明示されたら{ACTIVATION_LEVEL}は0になる。
+この状態でパートが動作するたびに現在の{ACTIVATION_LEVEL}が0であれば{ACTIVATION}のうちランダムに一つが選ばれ、パートの出力はtfidfのスコアと{ACTIVATINO_LEVEL}の積になる。そのため{ACTIVATION_LEVEL}値が1より大きい場合は他のパートよりも優先して発火する確率が高くなる。これにより動作する/しないの挙動にランダム性が導入される。出力文字列の中に{DEACTIVATE}が明示されたら{ACTIVATION_LEVEL}は0になる。
 このパートを排他的に動作させたければ10など他とくらべてより大きな値を設定する。
 
 ### FORCED_ACTIVATION
@@ -55,7 +55,7 @@ ICIでは交換可能な概念をリストとして扱う。順番は概念が�
 
 ## タグ
 ### 明示的タグ
-入力文字列には{tag}のように変数名を{}で囲った表記を埋め込むことができる。テキスト解析ではタグはtokenにそのまま利用される。
+入力文字列には{tag}のように変数名を{}で囲った表記を埋め込むことができる。これをタグと呼ぶ。テキスト解析ではタグはtokenにそのまま利用される。
 
 ```
 surface   私は     {animal}を     見た     。 
@@ -98,6 +98,12 @@ token     {I}\tは
 ```
 つまり{?greeting}は過去に{greeting}が記憶されていればテキストマッチングの際に{greeting}とみなされ、過去の記憶になければそのノードは破棄される。これにより、入力文字列に{?greeting}を記述しておくと「{greeting}が行われていればこの発言をする可能性が高くなる」という動作になる。
 {?!greeting}のようにタグ名の前に?!を加えると、意味は否定になり、「{greeting}が行われていなければこの発言をする可能性が高くなる」という動作になる。
+
+## ecosystemによるタグ
+
+天候と場所の情報はユーザやチャットボットの発言の付属情報として扱う。晴れているときに適切な発言、雨のときに適切な発言などを考慮できる。そのため、ユーザ発言、チャットボット発言ともにログに記録されるときに
+{?ECOSYS_SUNNY}{?ECOSYS_ROOM}
+という情報を付加する。
 
 ## 未知の単語の学習
 ユーザから入力された文字列の中にチャットボットにとって未知の単語がある場合、tfidf演算ができない。
@@ -236,11 +242,13 @@ token     {I}\tは  0233   0003\tと      3434\tに   4433     \tよ   \t。
 
 会話ログを以下のような形式で記述
 ```
+{ACTIVATION} ,optional
+{FORCES_ACTIVATION} ,optional
 {tag} タグの定義, optional
-with {?tag} すべてのbot,user,env行に追加される条件タグ, optional
+with {?tag} すべてのbot,user,ecosys行に追加される条件タグ, optional
 
-user ユーザ発言
-bot ボットの返答({AVATAR}が表示される)
+user ユーザ発言\t{timestamp}\t
+bot ボットの返答({AVATAR}が表示される)\t{timestamp}\t
 peace ボットの返答(先頭が有効なavatar名の場合そのavatarが表示される)
 ```
 

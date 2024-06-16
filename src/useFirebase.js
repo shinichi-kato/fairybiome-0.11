@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react';
-import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import {useState, useEffect} from 'react';
+import {initializeApp, getApp, getApps} from 'firebase/app';
+import {getFirestore} from 'firebase/firestore';
 
+/**
+ * .envに格納された情報を利用してfirebaseを初期化
+ * @return {Array} firebase,firestore 両オブジェクト
+ */
 export default function useFirebase() {
   const [firebase, setFirebase] = useState(null);
   const [firestore, setFirestore] = useState(null);
@@ -24,7 +28,6 @@ export default function useFirebase() {
 
     setFirebase(fb);
     setFirestore(getFirestore(fb));
-
   }, []);
 
   return [firebase, firestore];

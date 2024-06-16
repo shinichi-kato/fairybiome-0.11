@@ -39,16 +39,10 @@ onmessage = (event) => {
   const action = event.data;
   console.log('mainWorker recieved', action);
   switch (action.type) {
-    case 'standby': {
-      main.standby(action).then((r) => {
-        postMessage({type: 'standby', ...r});
-      });
-      break;
-    }
     case 'deploy': {
-      main.deploy(action).then((result) => {
-        if (result) {
-          postMessage({type: 'deployed'});
+      main.deploy(action).then((botRepr) => {
+        if (botRepr) {
+          postMessage({type: 'deployed', botRepr: botRepr});
         }
       });
       break;

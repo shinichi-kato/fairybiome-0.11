@@ -10,14 +10,15 @@ export const main = {
   backgroundColor: '#cccccc',
   channel: new BroadcastChannel('biomebot'),
 
-  deploy: async (action) => {
-    /*
-      botIdかつkind:'main'のデータを読み、
-      memoryにBOT_NAMEがなければボットの名前を生成して付与する。
-      確率に従い自発的summonを行う。
-      summonしない場合、ユーザの召喚を聞き取る
-    */
-    const {botId, summon} = action;
+  /**
+   * botIdの'main'データをindexedDBから読み込む。
+   * memoryにBOT_NAMEがなければBOT_NAME_GENERATORで生成して代入する。
+   * summonに従い初期状態を決める
+   * @param {String} param.botId botId
+   * @param {Boolean} summon 初期に召喚された状態で始まるか
+   * @return {Object} botRepr
+   */
+  deploy: async ({botId, summon}) => {
     const m = await botDxIo.downloadDxModule(botId, 'main');
     main.botId = botId;
     main.schemeName = m.schemeName;
@@ -47,6 +48,13 @@ export const main = {
       const onStart = await botDxIo.getMemory(botId, '{ON_START}');
       main.state = onStart.val;
     }
+
+    return {
+      displayName: botName,
+      avatarDir: main.avatarDir,
+      backgroundColor: main.backgroundColor,
+      avatar: 'emerged'
+    };
   },
 
   run: async (action) => {

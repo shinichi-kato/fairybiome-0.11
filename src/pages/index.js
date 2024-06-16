@@ -3,6 +3,7 @@ import {graphql} from 'gatsby';
 import Container from '@mui/material/Container';
 
 import AuthProvider from '../components/Auth/AuthProvider';
+import EcosystemProvider from '../components/Ecosystem/EcosystemProvider';
 import BiomebotProvider from '../biomebot-0.11/BiomebotProvider';
 import useFirebase from '../useFirebase';
 
@@ -16,7 +17,9 @@ export default function Index() {
   return (
     <Container maxWidth='xs' disableGutters sx={{height: '100vh'}}>
       <AuthProvider firebase={firebase} firestore={firestore}>
-        <BiomebotProvider firestore={firestore}>main</BiomebotProvider>
+        <EcosystemProvider firestore={firestore}>
+          <BiomebotProvider firestore={firestore}>main</BiomebotProvider>
+        </EcosystemProvider>
       </AuthProvider>
     </Container>
   );
