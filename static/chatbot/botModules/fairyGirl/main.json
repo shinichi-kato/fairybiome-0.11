@@ -3,18 +3,7 @@
     "author": "system",
     "avatarDir": "fairy-girl",
     "backgroundColor": "#de53a1",
-    "updatedAt": "2024-06-01T06:04:05.000Z",
-    "memory": {
-        "{BOT_NAME}": null,
-        "{I}": ["私"],
-        "{YOU}": ["あなた"],
-        "{AWAKENING_HOUR}": [7],
-        "{BEDTIME_HOUR}": [21],
-        "{BOT_NAME_GENERATOR}": ["シズク","カスミ","メノウ","リン","ヒスイ","サクラ"],
-        "{RESPONSE_INTERVALS}":[300,400],
-        "{ON_START}": ["sleep","greeting","offStage"],
-        "{ON_SUMMON}": ["greeting"]
-    },
+
     "alarms": {
         "{ALARM_MONDAY}": {
             "year": null,
@@ -24,5 +13,21 @@
             "hour": null,
             "minute": null
         }
-    }
+    },
+    "updatedAt": "2024-06-01T06:04:05.000Z",
+    "script": [
+        "{BOT_NAME} undefined",
+        "{I} 私",
+        "{YOU} あなた",
+        "{AWAKENING_HOUR} 7",
+        "{BEDTIME_HOUR} 21",
+        "{BOT_NAME_GENERATOR} シズク,カスミ,メノウ,リン,ヒスイ,サクラ",
+        "{RESPONSE_INTERVALS} 300,400",
+        "{ON_START} sleep,greeting,offStage",
+        "{ON_SUMMON} greeting",
+        "{ACTIVATION} 0.3,0.4",
+        "{FORCED_ACTIVATION} 5",
+        "{RETENTION} 0.5",
+        "{DEFAULT_AVATAR} peace"
+    ]
 }

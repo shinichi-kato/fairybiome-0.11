@@ -1,5 +1,10 @@
 import Dexie from 'dexie';
+import {randomInt} from 'mathjs';
+import replaceAsync from 'string-replace-async';
 import {Dbio} from '../dbio';
+
+const RE_TAG_LINE = /^(\{[a-zA-Z0-9_]+\}) (.+)$/;
+const RE_EXPAND_TAG = /^\{([a-zA-Z_][a-zA-Z0-9_]*)\}/;
 
 /**
  * IndexedDB上に記憶したbot情報のI/O
@@ -15,7 +20,8 @@ class BotDxIo extends Dbio {
     this.downloadDxScheme = this.downloadDxScheme.bind(this);
     this.downloadDxModule = this.downloadDxModule.bind(this);
     this.downloadDxScript = this.downloadDxScript.bind(this);
-    this.getMemory = this.getMemory.bind(this);
+    this.updateTagValue = this.updateTagValue.bind(this);
+    this.decodeTag = this.decodeTag.bind(this);
   }
 
   /**
@@ -45,33 +51,34 @@ class BotDxIo extends Dbio {
     // indexedDBへのアップロード。
     for (const module of scheme.botModules) {
       await this.db.botModules.put({
-        ...module.data,
-        script: 'on script db', // moduleの中からscriptを除外
-        moduleId: module.fsId,
+        fsId: module.fsId,
+        data: {
+          ...module.data,
+          script: 'on script db/memory db', // moduleの中からscriptを除外
+        },
       });
 
       // scriptの内容はdb.scriptに記憶。変更点の追跡が大変なので
-      // 一旦削除し上書きする
-      await this.db.scirpt.where('moduleId').equals(module.fsId).delete();
-      for (const line of module.script) {
-        await this.db.script.add({
-          moduleId: module.fsId,
-          text: line.text,
-          timestamp: line.timestamp,
-        });
-      }
-
-      // mainに記載されたmemoryのデータはdb.memoryにコピー
-      const data = module.data;
-      if (data.moduleName === 'main') {
-        for (const key in data.memory) {
-          if (Object.prototype.hasOwnProperty.call(data.memory, key)) {
-            await this.db.memory.put({
-              botId: data.botId,
-              key: key,
-              value: data.memory[key],
-            });
-          }
+      // 一旦削除し上書きする。
+      // scriptの内容のうち、タグはmemoryに記憶する
+      await this.db.scripts.where('botModuleId').equals(module.fsId).delete();
+      await this.db.memory.where('botId').equals(module.fsId).delete();
+      for (const line of module.data.script) {
+        const m = line.match(RE_TAG_LINE);
+        if (m) {
+          await this.db.memory.add({
+            botId: module.data.botId,
+            moduleName: module.data.moduleName,
+            key: m[1],
+            value: m[2].split(','),
+          });
+        } else {
+          const n = line.split('\t');
+          await this.db.scripts.add({
+            botModuleId: module.fsId,
+            text: n[0],
+            timestamp: n[1] ? new Date(n[1]) : null,
+          });
         }
       }
     }
@@ -89,30 +96,17 @@ class BotDxIo extends Dbio {
       botModules: [], // 内容は{id,data}
     };
 
-    // db.memoryの読み込み
-    // const memory = {};
-    // const mems = await this.db.memory
-    //   .where(['botId', 'key'])
-    //   .between([botId, Dexie.minKey], [botId, Dexie.maxKey])
-    //   .toArray();
-
-    // for (const mem of mems) {
-    //   memory[mem.key] = mem.value;
-    // }
-
-    await this.db.botModules
+    const snaps = await this.db.botModules
       .where(['data.botId', 'data.moduleName'])
       .between([botId, Dexie.minKey], [botId, Dexie.maxKey])
-      .each((snap) => {
-        // if (snap.moduleName === 'main') {
-        //   snap.memory = memory;
-        // }
-        scheme.botModules.push(snap);
-        const ts = snap.data.updatedAt;
-        if (scheme.updatedAt < ts) {
-          scheme.updatedAt = ts;
-        }
-      });
+      .toArray();
+    for (const snap of snaps) {
+      scheme.botModules.push(snap);
+      const ts = snap.data.updatedAt;
+      if (scheme.updatedAt < ts) {
+        scheme.updatedAt = ts;
+      }
+    }
 
     return scheme;
   }
@@ -125,7 +119,6 @@ class BotDxIo extends Dbio {
    * @return {Object} 取得したモジュール
    */
   async downloadDxModule(botId, moduleName) {
-    console.log(botId, moduleName);
     const module = await this.db.botModules
       .where(['data.botId', 'data.moduleName'])
       .equals([botId, moduleName])
@@ -139,43 +132,98 @@ class BotDxIo extends Dbio {
    * @return {array} スクリプト[{text,timestamp}]形式
    */
   async downloadDxScript(moduleId) {
-    return await this.db.script.where('moduleId').equals(moduleId).toArray();
+    const data = await this.db.scripts
+      .where('botModuleId')
+      .equals(moduleId)
+      .toArray();
+
+    return data;
   }
 
   /**
-   * botIdで指定したチャットボットのmemoryからkeyで指定されたデータを取得。
-   * それが配列の場合中からランダムに選んだ一つをidとともに返す
-   * @param {String} botId チャットボットのId
-   * @param {String} key memoryのキー文字列
-   * @return {Object} indexedDB上でのidとランダムに選んだ値(val)
+   * memoryに新しいkey,valのペアを書き込む。keyが既存の場合追加valを追加する
+   * @param {String} key キー文字列
+   * @param {String} value 格納する値
+   * @param {String} botId botのid
+   * @param {String} moduleName モジュール名
    */
-  async getMemory(botId, key) {
-    // db.memoryの内容を読み、配列の中から一つをランダムに選んで返す
-    const snap = await this.db.memory
+  async updateTagValue(key, value, botId, moduleName = 'main') {
+    // db.memoryを更新
+    // db.scriptsにはmemoryの内容はコピーされていない
+    return await this.db.memory
+      .where(['botId', 'moduleName', 'key'])
+      .equal([botId, moduleName, key])
+      .modify((item) => {
+        return {
+          ...item,
+          value: item.value.push(value),
+        };
+      });
+  }
+
+  /**
+   * db.memoryのtagを展開し、文字列にして返す
+   * @param {string} key key文字列
+   * @param {string} botId botId
+   * @param {string} moduleName 展開を要求したモジュールの名前
+   * @return {String} 展開した文字列
+   */
+  async decodeTag(key, botId, moduleName = 'main') {
+    // botIdのmemoryはmainとpartのスクリプトに記載されたタグで
+    // 構成される。
+    // partとmainで同じ名前の記憶があった場合partを優先する
+
+    const db = this.db;
+    /**
+     * 再帰的なタグの展開
+     * @param {String} tag タグ文字列
+     * @return {String} 展開後の文字列
+     */
+    async function expand(tag) {
+      const snaps = await db.memory
+        .where(['botId', 'key'])
+        .equals([botId, tag])
+        .filter(
+          (item) => item.moduleName === 'main' || item.moduleName === moduleName
+        )
+        .toArray();
+
+      if (snaps.length === 0) {
+        return tag;
+      }
+
+      const snap =
+        snaps[snaps.length > 1 && snaps[0].moduleName === 'main' ? 1 : 0];
+
+      // 候補の中から一つを選ぶ
+      const value = snap.value[randomInt(snap.value.length)];
+
+      // タグが見つかったら再帰的に展開する
+      return replaceAsync(value, RE_EXPAND_TAG, expand);
+    }
+
+    const snaps = await db.memory
       .where(['botId', 'key'])
       .equals([botId, key])
-      .first();
+      .filter(
+        (item) => item.moduleName === 'main' || item.moduleName === moduleName
+      )
+      .toArray();
 
-    const values = snap.value;
-    if (Array.isArray(values)) {
-      const l = values.length;
-      if (l === 0) {
-        return '';
-      } else {
-        const i = Math.floor(Math.random() * l);
-        return {id: snap.id, val: values[i]};
-      }
+    let decoded = '';
+    if (snaps.length != 0) {
+      // snapsにmainとpartが両方ある場合、partだけ残す
+      const snap =
+        snaps[snaps.length > 1 && snaps[0].moduleName === 'main' ? 1 : 0];
+
+      // 候補の中から一つを選ぶ
+      const value = snap.value[randomInt(snap.value.length)];
+
+      // タグが見つかったら展開する
+      decoded = replaceAsync(value, RE_EXPAND_TAG, expand);
     }
-    return {id: snap.id, val: null};
-  }
 
-  /**
-   * memoryに新しい値を書き込む
-   * @param {String} memoryId getMemoryで取得できるmemoryId
-   * @param {String} val 格納する値
-   */
-  async updateMemory(memoryId, val) {
-    return await this.db.memory.update(memoryId, {val: val});
+    return decoded;
   }
 }
 

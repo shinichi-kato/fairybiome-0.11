@@ -32,7 +32,8 @@
           botId,      // PCbotはユーザにひも付き、NPCbotは紐付かないid
           schemeName, // chatbotの型式、graphqlのDirectory名
           moduleName, // main,各partの名前。graphqlのname
-          updatedAt
+          updatedAt,
+          mainFsId,   // mainスクリプトのfsId
         },
         ...
 
@@ -75,7 +76,6 @@ export async function syncCache(
   const fsScheme = await downloadFsScheme(firestore, botId);
   const dxScheme = await botDxIo.downloadDxScheme(userId, botId);
   const gqScheme = graphqlToScheme(graphqlSnap, schemeName, botId);
-  console.log(gqScheme);
   const fsud = fsScheme.updatedAt;
   const dxud = dxScheme.updatedAt;
   const gqud = gqScheme.updatedAt;
@@ -104,15 +104,34 @@ export async function syncCache(
 async function uploadFsScheme(firestore, scheme) {
   const batch = writeBatch(firestore);
 
-  for (const module of scheme.botModules) {
-    let docRef;
-    if ('fsId' in module) {
-      docRef = doc(firestore, 'botModules', module.fsId);
-    } else {
-      docRef = doc(collection(firestore, 'botModules'));
-      module.fsId = docRef.id;
+  // main moduleのscriptは各partでも読み込むため、はじめに
+  // mainを探してuploadし、他にfsIdを渡す
+  let main;
+  for (main of scheme.botModules) {
+    if (main.data.moduleName === 'main') {
+      let docRef;
+      if ('fsId' in main) {
+        docRef = doc(firestore, 'botModules', main.fsId);
+      } else {
+        docRef = doc(collection(firestore, 'botModules'));
+        main.fsId = docRef.id;
+      }
+      batch.set(docRef, main.data);
+      break;
     }
-    batch.set(docRef, module.data);
+  }
+
+  for (const module of scheme.botModules) {
+    if (module.data.moduleName !== 'main') {
+      let docRef;
+      if ('fsId' in module) {
+        docRef = doc(firestore, 'botModules', module.fsId);
+      } else {
+        docRef = doc(collection(firestore, 'botModules'));
+        module.fsId = docRef.id;
+      }
+      batch.set(docRef, {...module.data, mainFsId: main.fsId});
+    }
   }
   await batch.commit();
 }

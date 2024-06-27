@@ -51,9 +51,10 @@
   upload時に一旦moduleIdに属するデータは消して上書きする
 
 
-  # システムタグ
+  # タグ
   memory {
     botId,
+    moduleName,
     key,value
   }
 
@@ -115,7 +116,7 @@ export class Dbio {
    * @param {String} botId チャットボットのid
    * @return {Boolean} botIdのデータが存在するかどうか
    */
-  async getDIr(botId) {
+  async getDir(botId) {
     // -------------------------------------------------------
     // botIdで指定されたmainと少なくとも１つのpartが存在する
     // dirを返す。既存のbotが存在するかを確認できる。
@@ -128,7 +129,6 @@ export class Dbio {
     }
     return false;
   }
-
 }
 
 export const db = new Dbio();

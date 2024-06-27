@@ -31,13 +31,11 @@ export const main = {
 
     // {BOT_NAME}チェック
 
-    let botNameSnap = await botDxIo.getMemory(botId, '{BOT_NAME}');
-    let botName = botNameSnap.val;
-    if (!botName) {
-      botNameSnap = await botDxIo.getMemory(botId, '{BOT_NAME_GENERATOR}');
-      botName = botNameSnap.val;
+    let botName = await botDxIo.decodeTag('{BOT_NAME}', botId);
+    if (botName === 'undefined') {
+      botName = await botDxIo.decodeTag('{BOT_NAME_GENERATOR}', botId);
 
-      await botDxIo.updateMemory(botNameSnap.id, [botName]);
+      await botDxIo.updateTagValue('{BOT_NAME}', botName, botId);
     }
 
     // 開始状態の決定
@@ -45,7 +43,7 @@ export const main = {
     if (summon) {
       main.state = 'peace';
     } else {
-      const onStart = await botDxIo.getMemory(botId, '{ON_START}');
+      const onStart = await botDxIo.decodeTag('{ON_START}', botId);
       main.state = onStart.val;
     }
 
@@ -53,12 +51,13 @@ export const main = {
       displayName: botName,
       avatarDir: main.avatarDir,
       backgroundColor: main.backgroundColor,
-      avatar: 'emerged'
+      avatar: 'emerged',
     };
   },
 
   run: async (action) => {
     // タイマーを起動しpart発言を集めて反応を生成
+    // 無言も検出
   },
 
   pause: async (action) => {

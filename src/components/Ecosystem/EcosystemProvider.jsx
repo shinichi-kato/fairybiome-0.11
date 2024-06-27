@@ -183,6 +183,7 @@ const initialState = {
   logRef: null,
   noise: new NoiseGenerator(1, ECOSYSTEM_CLIMATE_SCALE),
   channel: null,
+  run: false,
 };
 
 /**
@@ -192,6 +193,7 @@ const initialState = {
  * @return {Object} 新しいstate
  */
 function reducer(state, action) {
+  console.log('Ecosystem ', action);
   switch (action.type) {
     case 'setChannel': {
       return {
@@ -232,6 +234,20 @@ function reducer(state, action) {
       return {
         ...state,
         weather: action.weather,
+      };
+    }
+
+    case 'run': {
+      return {
+        ...state,
+        run: true,
+      };
+    }
+
+    case 'stop': {
+      return {
+        ...state,
+        run: false,
       };
     }
 
@@ -318,37 +334,40 @@ export default function EcosystemProvider({firestore, children}) {
   // 人工環境の更新
   //
 
-  useInterval(() => {
-    // 天候
-    const month = new Date().toLocaleDateString().split('/')[1];
-    const currentWeather =
-      weatherMap[month][Math.round(state.n.getValue() * 7)];
-    if (currentWeather !== state.weather) {
-      sendMessage(`{ECOSYSTEM_START_${currentWeather}}`);
-      dispatch({type: 'setWeather', weather: currentWeather});
-    }
+  useInterval(
+    () => {
+      // 天候
+      const month = new Date().toLocaleDateString().split('/')[1];
+      const currentWeather =
+        weatherMap[month][Math.round(state.noise.getValue() * 7)];
+      if (currentWeather !== state.weather) {
+        sendMessage(`{ECOSYSTEM_START_${currentWeather}}`);
+        dispatch({type: 'setWeather', weather: currentWeather});
+      }
 
-    // 昼夜
-    // lastAccessAtが昨日だったら更新
+      // 昼夜
+      // lastAccessAtが昨日だったら更新
 
-    let todayCycle;
-    if (isToday(state.lastAccessAt)) {
-      todayCycle = getTodayCycle();
-      dispatch({type: 'setTodayCycle', todayCycle: todayCycle});
-    } else {
-      todayCycle = state.todayCycle;
-    }
+      let todayCycle;
+      if (isToday(state.lastAccessAt)) {
+        todayCycle = getTodayCycle();
+        dispatch({type: 'setTodayCycle', todayCycle: todayCycle});
+      } else {
+        todayCycle = state.todayCycle;
+      }
 
-    // 直近のdayCycleイベントを発火
-    const latestEvent = getLatestEvent(state.lastAccessAt, todayCycle);
-    if (latestEvent) {
-      sendMessage(`{ECOSYSTEM_START_${latestEvent}}`);
-      dispatch({type: 'setDayState', event: latestEvent});
-    }
+      // 直近のdayCycleイベントを発火
+      const latestEvent = getLatestEvent(state.lastAccessAt, todayCycle);
+      if (latestEvent) {
+        sendMessage(`{ECOSYSTEM_START_${latestEvent}}`);
+        dispatch({type: 'setDayState', event: latestEvent});
+      }
 
-    // 季節
-    //
-  }, ECOSYSTEM_UPDATE_INTERVAL);
+      // 季節
+      //
+    },
+    state.run ? ECOSYSTEM_UPDATE_INTERVAL : null
+  );
 
   // -------------------------------------------------
   // メッセージの送出
@@ -360,7 +379,7 @@ export default function EcosystemProvider({firestore, children}) {
    */
   function sendMessage(message) {
     const m = new MessageFactory(message, {ecoState: true}).toObject();
-    state.chanel.postMessage({
+    state.channel.postMessage({
       type: 'input',
       message: m,
     });
@@ -375,6 +394,8 @@ export default function EcosystemProvider({firestore, children}) {
         dayState: state.dayState,
         ecoState: `{ECOSYS_${state.weather}}{ECOSYS_${state.location}`,
         log: log,
+        run: () => dispatch({type: 'run'}),
+        stop: () => dispatch({type: 'stop'}),
       }}
     >
       {children}

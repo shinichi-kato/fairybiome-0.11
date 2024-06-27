@@ -19,7 +19,8 @@
     "gatsby-transformer-json": "^5.13.1",
     "mathjs": "^12.4.2",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "string-replace-async": "^3.0.2"
   },
   "scripts": {
     "develop": "gatsby develop",
@@ -31,6 +32,7 @@
   "devDependencies": {
     "eslint": "^7.32.0",
     "eslint-config-google": "^0.14.0",
+    "fake-indexeddb": "^6.0.0",
     "vitest": "^1.6.0",
     "worker-loader": "^3.0.8"
   }

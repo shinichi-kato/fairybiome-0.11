@@ -3,6 +3,8 @@ FairyBiome-0.11 パートの動作機序
 
 ## パートの動作に影響を及ぼすパラメータ
 
+以下のパラメータはmain.jsonのscriptでも定義され、各パートの動作時には各パートで定義した値が優先される。
+
 ### ACTIVATION
 {ACTIVATION} 0.2,1.2,1.0,0.2,0.2
 パートには活性状態、不活性状態がある。これをpart内の変数{ACTIVATION_LEVEL}で管理する。
@@ -242,8 +244,8 @@ token     {I}\tは  0233   0003\tと      3434\tに   4433     \tよ   \t。
 
 会話ログを以下のような形式で記述
 ```
-{ACTIVATION} ,optional
-{FORCES_ACTIVATION} ,optional
+{ACTIVATION}  ,optional
+{FORCED_ACTIVATION} ,optional
 {tag} タグの定義, optional
 with {?tag} すべてのbot,user,ecosys行に追加される条件タグ, optional
 

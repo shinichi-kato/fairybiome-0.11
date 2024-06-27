@@ -295,29 +295,35 @@ export default function BiomebotProvider({
       ).then((mods) => {
         dispatch({type: 'setBotId', botId: botId, numOfModules: mods.length});
 
-        for (const mod of mods) {
-          if (mod === 'main') {
-            const newMain = new MainWorker();
-            newMain.onmessage = function (event) {
-              const action = event.data;
-              dispatch(action);
-            };
-            newMain.postMessage({type: 'deploy', botId: botId});
-            mainWorkersMapRef.current = {[botId]: newMain};
-          } else {
-            const newPart = new PartWorker(botId, mod);
-            newPart.onmessage = function (event) {
-              const action = event.data;
-              dispatch(action);
-            };
-            newPart.postMessage({
-              type: 'deploy',
-              botId: botId,
-              moduleName: mod,
-            });
-            partWorkersRef.current.push(newPart);
+        // はじめにmainModuleをdeployする。
+        const mi = mods.indexOf('main');
+        const newMain = new MainWorker();
+        newMain.onmessage = function (event) {
+          const action = event.data;
+          dispatch(action);
+          if (action.type === 'deployed') {
+            // mainModuleのdeployが完了したらPartをdeployする
+            // これによりmainのmemoryをpartが参照できる
+
+            for (let i = 0; i < mods.length; i++) {
+              if (i !== mi) {
+                const newPart = new PartWorker();
+                newPart.onmessage = function (event) {
+                  const action = event.data;
+                  dispatch(action);
+                };
+                newPart.postMessage({
+                  type: 'deploy',
+                  botId: botId,
+                  moduleName: mods[i],
+                });
+                partWorkersRef.current.push(newPart);
+              }
+            }
           }
-        }
+        };
+        newMain.postMessage({type: 'deploy', botId: botId});
+        mainWorkersMapRef.current = {[botId]: newMain};
       });
     }
   }, [state.channel, auth.uid]);

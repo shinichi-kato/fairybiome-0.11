@@ -15,7 +15,6 @@ export const part = {
     part.schemeName = p.schemeName;
     part.moduleName = p.moduleName;
 
-    
     return true;
   },
 
@@ -23,10 +22,8 @@ export const part = {
     console.log(action);
   },
 
-  _calc_matrix: () =>{
+  _calc_matrix: () => {
     // scriptをDBから取得。形式は[{test,timestamp}]
     const scirpt = botDxIo.downloadDxScript(part.moduleId);
-
-
-  }
+  },
 };
