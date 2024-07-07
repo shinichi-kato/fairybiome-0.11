@@ -63,33 +63,36 @@ import {botDxIo} from './BotDxIo';
  * @param {String} userId firebaseで取得したuid
  * @return {Array} 動悸したbotを構成するbotModule名のリスト
  */
-export async function syncCache(
-  firestore,
-  graphqlSnap,
-  schemeName,
-  botId,
-  userId
-) {
+export async function syncCache(firestore, graphqlSnap, schemeName, botId) {
+  // token用タグを読み込み記憶する
+  const wordToTag = graphqlToWordTag(graphqlSnap.token);
+  await botDxIo.uploadDxWordToTagList(wordToTag);
+
   // fs,dx,gqの保存されているschemeのタイムスタンプを確認し、
   // dxが最新になるようアップデートする
 
   const fsScheme = await downloadFsScheme(firestore, botId);
-  const dxScheme = await botDxIo.downloadDxScheme(userId, botId);
-  const gqScheme = graphqlToScheme(graphqlSnap, schemeName, botId);
+  const dxScheme = await botDxIo.downloadDxScheme(botId);
+  const gqScheme = graphqlToScheme(graphqlSnap.chatbot, schemeName, botId);
   const fsud = fsScheme.updatedAt;
   const dxud = dxScheme.updatedAt;
   const gqud = gqScheme.updatedAt;
 
-  if (fsud > dxud && fsud > gqud) {
+  if (fsud > dxud && fsud >= gqud) {
     // fsが最新の場合、fs->dxにコピーする
     await botDxIo.uploadDxScheme(fsScheme, botId);
-  } else if (dxud > fsud && dxud > gqud) {
+  } else if (dxud > fsud && dxud >= gqud) {
     // dxが最新の場合、dx->fsにコピーする
     await uploadFsScheme(firestore, dxScheme);
-  } else if (gqud > fsud && gqud > dxud) {
-    // gqが最新の場合、gq->fs, gq->dxにコピーする
-    await uploadFsScheme(firestore, gqScheme);
-    await botDxIo.uploadDxScheme(gqScheme);
+  } else {
+    if (gqud > fsud) {
+      // gqが最新の場合、gq->fsにコピーする
+      await uploadFsScheme(firestore, gqScheme);
+    }
+    if (gqud > dxud) {
+      // gqが最新の場合、gq->dxにコピーする
+      await botDxIo.uploadDxScheme(gqScheme);
+    }
   }
 
   return botDxIo.getModuleNames(botId);
@@ -171,7 +174,7 @@ async function downloadFsScheme(firestore, botId) {
  * @param {String} botId チャットボットのId
  * @return {Object} scheme形式のチャットボットデータ
  */
-function graphqlToScheme(gqSnap, schemeName, botId) {
+export function graphqlToScheme(gqSnap, schemeName, botId) {
   // graphql上のデータにはbotIdがないため
   // 外から与える。schemeNameも外から与える。
   const scheme = {
@@ -201,4 +204,22 @@ function graphqlToScheme(gqSnap, schemeName, botId) {
   });
 
   return scheme;
+}
+
+/**
+ * token用タグをgraphqlのsnapから取得
+ * @param {Object} gqSnap graphqlの結果
+ * @return {Array} wordToTagのリスト
+ */
+export function graphqlToWordTag(gqSnap) {
+  const valueTagList = [];
+  for (const node of gqSnap.data.allJson.nodes) {
+    for (const token of node.token.values) {
+      const [tag, values] = token.split(' ', 2);
+      for (const w of values.split(',')) {
+        valueTagList.push({tag: tag, word: w});
+      }
+    }
+  }
+  return valueTagList;
 }

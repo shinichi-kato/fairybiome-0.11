@@ -139,6 +139,19 @@ const chatbotsQuery = graphql`
   }
 `;
 
+const tokenQuery = graphql`
+  query {
+    allJson(filter: {token: {type: {in: ["system", "ici"]}}}) {
+      nodes {
+        token {
+          values
+          type
+        }
+      }
+    }
+  }
+`;
+
 const initialState = {
   botId: null,
   botState: 'init',
@@ -255,6 +268,7 @@ export default function BiomebotProvider({
   const auth = useContext(AuthContext);
   const [state, dispatch] = useReducer(reducer, initialState);
   const chatbotsSnap = useStaticQuery(chatbotsQuery);
+  const tokenTagSnap = useStaticQuery(tokenQuery);
   const mainWorkersMapRef = useRef({});
   const partWorkersRef = useRef([]);
 
@@ -288,7 +302,7 @@ export default function BiomebotProvider({
 
       syncCache(
         firestore,
-        chatbotsSnap,
+        {chatbot: chatbotsSnap, token: tokenTagSnap},
         currentSchemeName,
         botId,
         auth.uid

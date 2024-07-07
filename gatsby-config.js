@@ -38,6 +38,13 @@ module.exports = {
       },
     },
     {
+      resolve: `gatsby-source-filesystem`,
+      options: {
+        name: `token`,
+        path: `${__dirname}/static/chatbot/token`,
+      },
+    },
+    {
       resolve: `gatsby-transformer-json`,
       options: {
         typeName: `Json`,

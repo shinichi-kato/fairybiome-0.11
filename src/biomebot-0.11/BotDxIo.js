@@ -22,6 +22,9 @@ class BotDxIo extends Dbio {
     this.downloadDxScript = this.downloadDxScript.bind(this);
     this.updateTagValue = this.updateTagValue.bind(this);
     this.decodeTag = this.decodeTag.bind(this);
+    this.readTag = this.readTag.bind(this);
+    this.uploadDxWordToTagList = this.uploadDxWordToTagList.bind(this);
+    this.downloadDxWordToTagList = this.downloadDxWordToTagList.bind(this);
   }
 
   /**
@@ -49,8 +52,9 @@ class BotDxIo extends Dbio {
    */
   async uploadDxScheme(scheme) {
     // indexedDBへのアップロード。
+
     for (const module of scheme.botModules) {
-      await this.db.botModules.put({
+      await this.db.botModules.add({
         fsId: module.fsId,
         data: {
           ...module.data,
@@ -61,12 +65,13 @@ class BotDxIo extends Dbio {
       // scriptの内容はdb.scriptに記憶。変更点の追跡が大変なので
       // 一旦削除し上書きする。
       // scriptの内容のうち、タグはmemoryに記憶する
-      await this.db.scripts.where('botModuleId').equals(module.fsId).delete();
-      await this.db.memory.where('botId').equals(module.fsId).delete();
+      this.db.scripts.where('botModuleId').equals(module.fsId).delete();
+      this.db.memory.where('botId').equals(module.fsId).delete();
+
       for (const line of module.data.script) {
         const m = line.match(RE_TAG_LINE);
         if (m) {
-          await this.db.memory.add({
+          await this.db.memory.put({
             botId: module.data.botId,
             moduleName: module.data.moduleName,
             key: m[1],
@@ -119,11 +124,10 @@ class BotDxIo extends Dbio {
    * @return {Object} 取得したモジュール
    */
   async downloadDxModule(botId, moduleName) {
-    const module = await this.db.botModules
+    return await this.db.botModules
       .where(['data.botId', 'data.moduleName'])
       .equals([botId, moduleName])
       .first();
-    return module;
   }
 
   /**
@@ -132,12 +136,10 @@ class BotDxIo extends Dbio {
    * @return {array} スクリプト[{text,timestamp}]形式
    */
   async downloadDxScript(moduleId) {
-    const data = await this.db.scripts
+    return await this.db.scripts
       .where('botModuleId')
       .equals(moduleId)
       .toArray();
-
-    return data;
   }
 
   /**
@@ -152,7 +154,7 @@ class BotDxIo extends Dbio {
     // db.scriptsにはmemoryの内容はコピーされていない
     return await this.db.memory
       .where(['botId', 'moduleName', 'key'])
-      .equal([botId, moduleName, key])
+      .equals([botId, moduleName, key])
       .modify((item) => {
         return {
           ...item,
@@ -172,28 +174,32 @@ class BotDxIo extends Dbio {
     // botIdのmemoryはmainとpartのスクリプトに記載されたタグで
     // 構成される。
     // partとmainで同じ名前の記憶があった場合partを優先する
+    // タグに対応する値の中から一つをランダムに選ぶ。
+    // 選んだ文字列の中にタグが含まれていたら再帰的に展開する。
 
     const db = this.db;
+
     /**
      * 再帰的なタグの展開
      * @param {String} tag タグ文字列
      * @return {String} 展開後の文字列
      */
     async function expand(tag) {
-      const snaps = await db.memory
-        .where(['botId', 'key'])
-        .equals([botId, tag])
-        .filter(
-          (item) => item.moduleName === 'main' || item.moduleName === moduleName
-        )
-        .toArray();
+      const mainSnap = await db.memory
+        .where(['botId', 'moduleName', 'key'])
+        .equals([botId, 'main', tag])
+        .first();
 
-      if (snaps.length === 0) {
+      const partSnap = await db.memory
+        .where(['botId', 'moduleName', 'key'])
+        .equals([botId, moduleName, tag])
+        .first();
+
+      const snap = partSnap || mainSnap;
+
+      if (!snap) {
         return tag;
       }
-
-      const snap =
-        snaps[snaps.length > 1 && snaps[0].moduleName === 'main' ? 1 : 0];
 
       // 候補の中から一つを選ぶ
       const value = snap.value[randomInt(snap.value.length)];
@@ -202,28 +208,69 @@ class BotDxIo extends Dbio {
       return replaceAsync(value, RE_EXPAND_TAG, expand);
     }
 
-    const snaps = await db.memory
-      .where(['botId', 'key'])
-      .equals([botId, key])
-      .filter(
-        (item) => item.moduleName === 'main' || item.moduleName === moduleName
-      )
-      .toArray();
+    const values = await this.readTag(key, botId, moduleName);
+    // 候補の中から一つを選ぶ
+    const value = values[randomInt(values.length)];
 
-    let decoded = '';
-    if (snaps.length != 0) {
-      // snapsにmainとpartが両方ある場合、partだけ残す
-      const snap =
-        snaps[snaps.length > 1 && snaps[0].moduleName === 'main' ? 1 : 0];
-
-      // 候補の中から一つを選ぶ
-      const value = snap.value[randomInt(snap.value.length)];
-
-      // タグが見つかったら展開する
-      decoded = replaceAsync(value, RE_EXPAND_TAG, expand);
-    }
-
+    // タグが見つかったら展開する
+    const decoded = replaceAsync(value, RE_EXPAND_TAG, expand);
     return decoded;
+  }
+
+  /**
+   * db.memoryのtagに対応するvalueのリストを返す。展開はしない
+   * @param {string} key key文字列
+   * @param {string} botId botId
+
+   * @param {string} defaultValue keyが見つからなかった場合のデフォルト値
+    * @param {string} moduleName 展開を要求したモジュールの名前  * @return {String} 展開した文字列
+   */
+  async readTag(key, botId, defaultValue = '', moduleName = 'main') {
+    // botIdのmemoryはmainとpartのスクリプトに記載されたタグで
+    // 構成される。
+    // partとmainで同じ名前の記憶があった場合partを優先する
+    // タグに対応する値の中から一つをランダムに選ぶ。
+    const mainSnap = await this.db.memory
+      .where(['botId', 'moduleName', 'key'])
+      .equals([botId, 'main', key])
+      .first();
+
+    const partSnap = await this.db.memory
+      .where(['botId', 'moduleName', 'key'])
+      .equals([botId, moduleName, key])
+      .first();
+
+    const snap = partSnap || mainSnap;
+
+    return (snap && snap.value) || defaultValue;
+  }
+
+  /**
+   * wordToTagListをDxにアップロード
+   * @param {Array} wordToTags 表層形とタグのリスト
+   */
+  uploadDxWordToTagList(wordToTags) {
+    // 内容が最新になっているか管理が難しいため
+    // 全て削除して書き直す
+    this.db.wordTag.delete();
+    for (const item of wordToTags) {
+      this.db.wordTag.add({
+        tag: item.tag,
+        word: item.word,
+      });
+    }
+  }
+
+  /**
+   * wordToTagリストをdbから取得
+   * @return {Array} wordToTagのリスト
+   */
+  async downloadDxWordToTagList() {
+    return await this.db.wordTag
+      .toCollection()
+      .sortBy('word', (arr) =>
+        arr.sort((a, b) => b.word.length - a.word.length)
+      );
   }
 }
 

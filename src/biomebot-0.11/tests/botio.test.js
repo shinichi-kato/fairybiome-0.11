@@ -27,6 +27,7 @@ describe('bot i/o', () => {
             },
           },
           script: [
+            '{BOT_NAME} しずく',
             '{RESPONSE_INTERVALS} 300,400',
             '{AWAKENING_HOUR} 8, 7',
             '{BEDTIME_HOUR} 22',
@@ -70,12 +71,9 @@ describe('bot i/o', () => {
   });
 
   it('checkMemory', async () => {
-    const mem = await botDxIo.db.memory
-      .where('botId')
-      .equals('user00Test01')
-      .toArray();
+    const mem = await botDxIo.readTag('{BOT_NAME}', 'user00Test01');
     console.log(mem);
-    expect(mem.length).toBe(7);
+    expect(mem.length).toBe(1);
   });
 
   it('decodeTag', async () => {
