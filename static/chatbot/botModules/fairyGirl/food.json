@@ -2,6 +2,7 @@
     "updatedAt":"2024-06-01T06:04:05.000Z",
     "script": [
         "# コメント行",
+        "with {?hungry}",
         "user お腹すいた",
         "bot {user}は何食べたいの？",
         "user うどん",

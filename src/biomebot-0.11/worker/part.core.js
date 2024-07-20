@@ -1,5 +1,6 @@
 import {botDxIo} from '../BotDxIo';
 import {Noder} from './noder';
+import {retrieve} from './retrieve';
 import * as matrix from './matrix';
 
 export const part = {
@@ -21,22 +22,45 @@ export const part = {
     part.calcParams = {
       tailing: Number(botDxIo.readTag('{TAILING}', botId, 0.6)),
       condWeight: Number(botDxIo.readTag('{CONDITION_WEIGHT}', botId, 1)),
-      tsWeight: Number(botDxIo.readTag('{TIMESTAMP_WEIGHT', botId, 0.2)),
+      timeWeight: Number(botDxIo.readTag('{TIMESTAMP_WEIGHT}', botId, 0.2)),
     };
     part.noder = new Noder(botId);
 
     await part.noder.loadTags();
 
-    part.matrix = await part._calc_matrix();
+    part._calc_matrix();
   },
 
-  run: async (action) => {
-    console.log(action);
+  recieve: async (action) => {
+    /*
+      {type: input}により発行された環境やユーザからの入力を
+      受取り、
+      ・入力テキストを記憶する。
+      ・返答候補のスコア情報を返す。
+    */
+    part.prevInput = action.message.toObject();
+
+    return await retrieve(
+      part.prevInput,
+      part.source,
+      part.botId,
+      part.noder
+    );
   },
+
+  render: async (action) => {
+    /*
+      {type: engage}の発行を受取り、
+      ・outScriptを文字列化する
+      ・レンダリングの対象となったwordTagを記憶する
+      ・in-outのペアを辞書に書き込む
+    */
+  },
+
 
   _calc_matrix: async () => {
     // scriptをDBから取得。形式は[{test,timestamp}]
-    const script = botDxIo.downloadDxScript(part.moduleId);
+    const script = await botDxIo.downloadDxScript(part.moduleId);
     const stage1 = matrix.preprocess(
       script,
       part.validAvatars,
@@ -47,13 +71,11 @@ export const part = {
     const stage2 = matrix.tee(stage1.script);
     console.assert(stage2.status === 'ok', stage2.errors);
 
-    const stage3 = matrix.matrixize(
+    part.outScript = stage2.outScript;
+    part.source = matrix.matrixize(
       stage2.inScript,
       part.calcParams,
       part.noder
     );
-    console.assert(stage3.status === 'ok', stage3.errors);
-
-    return stage3;
   },
 };

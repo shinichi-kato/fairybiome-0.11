@@ -7,7 +7,9 @@ import personTag from '../../../static/chatbot/token/person.json';
 import scriptJson from '../../../static/chatbot/botModules/fairyGirl/main.json';
 import foodScript from '../../../static/chatbot/botModules/fairyGirl/food.json';
 import {graphqlToWordTag} from '../botio';
-import {preprocess,tee} from '../worker/matrix';
+import {preprocess, tee, matrixize} from '../worker/matrix';
+import {retrieve} from '../worker/retrieve';
+import {MessageFactory} from '../../message';
 
 describe('Noder&matrix', () => {
   const botId = 'user00Test01';
@@ -50,16 +52,14 @@ describe('Noder&matrix', () => {
     expect(1).toBe(1);
   });
 
+  const noder = new Noder(botId);
   it('Noder', async () => {
-    const noder = new Noder(botId);
     await noder.loadTags();
-    console.log('wordToTags', noder.wordToTags);
 
     expect(noder.wordToTags.length).toBe(110);
     expect(noder.nameToTags.length).toBe(1);
 
     const nodes = noder.nodify('こんにちは。しずくです。お父さんは強力です');
-    console.log(nodes);
 
     expect(nodes[4].feat).toBe('{BOT_NAME}');
   });
@@ -69,9 +69,10 @@ describe('Noder&matrix', () => {
   let script = [];
   it('downloadDxScript', async () => {
     script = await botDxIo.downloadDxScript('fakeFsId2');
-    expect(script.length).toBe(11);
+    expect(script.length).toBe(12);
   });
 
+  let script3;
   it('matrix-preprocess', () => {
     const validAvatars = [
       'peace',
@@ -82,12 +83,33 @@ describe('Noder&matrix', () => {
       'sleepy',
       'waving',
     ];
-    const script2 = preprocess(
-      script,
-      ['peace', ...validAvatars],
-      'peace'
-    );
-    const script3 = tee(script2.script);
+    const script2 = preprocess(script, ['peace', ...validAvatars], 'peace');
+    script3 = tee(script2.script);
     expect(script3.status).toBe('ok');
+  });
+
+  let source;
+  it('matrix-matrixize', () => {
+    const params = {tailing: 0.7, condWeight: 1.2, timeWeight: 0.8};
+    source = matrixize(script3.inScript, params, noder);
+    console.log("cMatrix",source.condMatrix)
+  });
+
+  it('set test cond tag', async () => {
+    await botDxIo.writeTag('hungry', 1, botId);
+    const r = await botDxIo.readTag('hungry', botId);
+    expect(r).toBe(1);
+  });
+
+  it('matrix-retrieve', async () => {
+    const user = {
+      avatarDir: 'avatarDir',
+      avatar: 'avatar',
+      displayName: '名前',
+    };
+    const msg = new MessageFactory('こんにちは', {user: user});
+
+    const retrieved = await retrieve(msg, source, botId, noder);
+    console.log(retrieved);
   });
 });

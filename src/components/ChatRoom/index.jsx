@@ -1,5 +1,4 @@
-import React, {useContext, useState, useEffect} from 'react';
-import {useStaticQuery, graphql} from 'gatsby';
+import React, {useContext, useState} from 'react';
 
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
@@ -10,30 +9,29 @@ import {EcosystemContext} from '../Ecosystem/EcosystemProvider';
 import ConsoleBar from './ConsoleBar';
 import UserPanel from '../Panel/UserPanel';
 import FairyPanel from '../Panel/FairyPanel';
+import LogView from './LogView';
+
+const panelWidth = 192;
+
 
 /**
  * チャットルーム
+ * @param {Object} firestore firestoreオブジェクト
  * @return {JSX.Element} コンポーネント
  */
-export default function ChatRoom() {
+export default function ChatRoom(firestore) {
   const [text, setText] = useState('');
   const auth = useContext(AuthContext);
   const eco = useContext(EcosystemContext);
   const bot = useContext(BiomebotContext);
 
-  const siteSnap = useStaticQuery(graphql`
-    query {
-      site {
-        siteMetadata {
-          balloonBackgroundAlpha
-        }
-      }
-    }
-  `);
-
-  function handleChangeText(e) {
+  const handleChangeText = (e) => {
     setText(e.target.value);
-  }
+  };
+
+  const handleToBack = () => {
+    // navigate
+  };
 
   return (
     <Container maxWidth='xs'>
@@ -49,7 +47,7 @@ export default function ChatRoom() {
             text={text}
             handleChangeText={handleChangeText}
             handleToBack={handleToBack}
-            handleSend={handleSend}
+            handleSend={bot.writeLog}
           />
         </Box>
         <Box
@@ -60,11 +58,7 @@ export default function ChatRoom() {
             flexGrow: 1,
           }}
         >
-          <LogViewer
-            log={log}
-            uid={auth.uid}
-            bgAlpha={siteSnap.site.siteMetadata.balloonBackgroundAlpha}
-          />
+          <LogView uid={auth.uid} />
         </Box>
         <Box
           sx={{

@@ -6,6 +6,7 @@ import AuthProvider from '../components/Auth/AuthProvider';
 import EcosystemProvider from '../components/Ecosystem/EcosystemProvider';
 import BiomebotProvider from '../biomebot-0.11/BiomebotProvider';
 import useFirebase from '../useFirebase';
+import ChatRoom from '../components/ChatRoom';
 
 /**
  * indexページ
@@ -18,7 +19,9 @@ export default function Index() {
     <Container maxWidth='xs' disableGutters sx={{height: '100vh'}}>
       <AuthProvider firebase={firebase} firestore={firestore}>
         <EcosystemProvider firestore={firestore}>
-          <BiomebotProvider firestore={firestore}>main</BiomebotProvider>
+          <BiomebotProvider firestore={firestore}>
+            <ChatRoom firestore={firestore} />
+          </BiomebotProvider>
         </EcosystemProvider>
       </AuthProvider>
     </Container>

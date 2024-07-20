@@ -63,8 +63,11 @@ import React, {
   useReducer,
   useEffect,
   useRef,
+  useCallback,
 } from 'react';
 import {useStaticQuery, graphql} from 'gatsby';
+import {collection, addDoc, serverTimestamp} from 'firebase/firestore';
+
 import {AuthContext} from '../components/Auth/AuthProvider';
 import {syncCache} from './botio';
 
@@ -100,7 +103,7 @@ function randomlyChoosePCScheme(gqSnap) {
   // 残りからランダムに一つを選んで返す。
 
   const s = [];
-  gqSnap.allJson.nodes.forEach((n) => {
+  gqSnap.forEach((n) => {
     const dir = n.parent.relativeDirectory;
     if (!dir.startsWith('_') && !dir.startsWith('NPC')) {
       s.push(dir);
@@ -111,7 +114,7 @@ function randomlyChoosePCScheme(gqSnap) {
   return s[i];
 }
 
-const chatbotsQuery = graphql`
+const biomebotQuery = graphql`
   query {
     allFile(
       filter: {sourceInstanceName: {eq: "botAvatar"}, ext: {eq: ".svg"}}
@@ -123,34 +126,45 @@ const chatbotsQuery = graphql`
       }
     }
     allJson {
-      nodes {
-        parent {
-          ... on File {
-            relativeDirectory
-            name
-            internal {
-              content
-            }
+    nodes {
+      token {
+        values
+        type
+      }
+      parent {
+        ... on File {
+          relativeDirectory
+          name
+          internal {
+            content
+            description
           }
         }
-        description
       }
     }
   }
+}
 `;
 
-const tokenQuery = graphql`
-  query {
-    allJson(filter: {token: {type: {in: ["system", "ici"]}}}) {
-      nodes {
-        token {
-          values
-          type
-        }
-      }
+const getChatbotSnap = (biomebotSnap) => {
+  const snap = {};
+  biomebotSnap.allJson.nodes.forEach((node) => {
+    if (node.name) {
+      snap.push(node);
     }
-  }
-`;
+  });
+  return snap;
+};
+
+const getTokenSnap = (biomebotSnap) => {
+  const snap = {};
+  biomebotSnap.allJson.nodes.forEach((node) => {
+    if (node.token && node.token.type === 'ici') {
+      snap.push(node);
+    }
+  });
+  return snap;
+};
 
 const initialState = {
   botId: null,
@@ -267,10 +281,17 @@ export default function BiomebotProvider({
 }) {
   const auth = useContext(AuthContext);
   const [state, dispatch] = useReducer(reducer, initialState);
-  const chatbotsSnap = useStaticQuery(chatbotsQuery);
-  const tokenTagSnap = useStaticQuery(tokenQuery);
+  const biomebotSnap = useStaticQuery(biomebotQuery);
   const mainWorkersMapRef = useRef({});
   const partWorkersRef = useRef([]);
+
+  const writeLog = useCallback(
+    (message) => {
+      const logRef = collection(firestore, 'users', auth.uid, 'log');
+      addDoc(logRef, message).then();
+    },
+    [firestore, auth.uid]
+  );
 
   // ---------------------------------------------------
   // broadcast channelの初期化
@@ -296,13 +317,17 @@ export default function BiomebotProvider({
   useEffect(() => {
     if (state.channel && auth.uid && firestore) {
       // schemeNameが指定されたらそれを使う。なければランダムにPCを選ぶ
+      const chatbotSnap = getChatbotSnap(biomebotSnap);
       const currentSchemeName =
-        schemeName || randomlyChoosePCScheme(chatbotsSnap);
+        schemeName || randomlyChoosePCScheme(chatbotSnap);
       const botId = generateBotId(auth.uid, currentSchemeName);
 
       syncCache(
         firestore,
-        {chatbot: chatbotsSnap, token: tokenTagSnap},
+        {
+          chatbot: chatbotSnap,
+          token: getTokenSnap(biomebotSnap),
+        },
         currentSchemeName,
         botId,
         auth.uid
@@ -314,7 +339,11 @@ export default function BiomebotProvider({
         const newMain = new MainWorker();
         newMain.onmessage = function (event) {
           const action = event.data;
+          if (action.type === 'reply') {
+            writeLog(action.message);
+          }
           dispatch(action);
+
           if (action.type === 'deployed') {
             // mainModuleのdeployが完了したらPartをdeployする
             // これによりmainのmemoryをpartが参照できる
@@ -355,11 +384,20 @@ export default function BiomebotProvider({
     }
   }, [state.botId, state.botState]);
 
+  /**
+   * ユーザがキー入力中なことをbotのmainに通知
+   */
+  function handleUserKeyTouch() {
+    mainWorkersMapRef.current[state.botId].userKeyTouch();
+  }
+
   return (
     <BiomebotContext.Provider
       value={{
         state: state,
         botRepr: state?.botRepr,
+        userKeyTouch: handleUserKeyTouch,
+        writeLog: writeLog,
       }}
     >
       {children}

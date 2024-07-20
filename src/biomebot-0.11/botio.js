@@ -182,7 +182,7 @@ export function graphqlToScheme(gqSnap, schemeName, botId) {
     botModules: [],
   };
 
-  gqSnap.allJson.nodes.forEach((node) => {
+  gqSnap.forEach((node) => {
     if (node.parent.relativeDirectory === schemeName) {
       const s = JSON.parse(node.parent.internal.content);
       const u = new Date(s.updatedAt);

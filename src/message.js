@@ -99,6 +99,7 @@ export class MessageFactory {
       background: this.background,
       displayName: this.displayName,
       ecoState: this.ecoState,
+      timestamp: this.timestamp,
     };
   }
 }

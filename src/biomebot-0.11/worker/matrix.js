@@ -35,6 +35,7 @@ timestamp.toValue()で得られる値(msec)
 */
 import {
   zeros,
+  ones,
   identity,
   divide,
   apply,
@@ -46,8 +47,11 @@ import {
   size,
   diag,
   multiply,
+  dotMultiply,
   norm,
 } from 'mathjs';
+
+import {time2yearRad, time2dateRad} from '../../components/Ecosystem/dayCycle';
 
 const RE_BLANK_LINE = /^\s*$/;
 const KIND_USER = 1;
@@ -81,8 +85,14 @@ export function matrixize(inScript, params, noder) {
   -----------------------------------------------------------
 
   inScriptには{ecoState}も含まれており、それらは通常の形態素と
-  同様の重みで扱われる。条件タグ以外はfeatの出現回数を正規化
-  したもの行列化し、 retrieve()内で内積をとって類似度とする。
+  同様の重みで扱われる。
+
+  ■条件タグ
+  inScriptの中での{?tag}{!tag}という表記はそのタグが記憶されて
+  いるかどうかを検査する意味で、条件タグと呼ぶ。?や!を伴わない
+  {tag}は条件タグとして扱わない。
+  条件タグ以外はfeatの出現回数を正規化したもの行列化し、
+  retrieve()内で内積をとって類似度とする。
   condのvectorはinスクリプトに書かれた条件タグを{?tag}は1、
    {?!tag}は-1という成分としてベクトル化し、正規化せずに
   返し、条件タグのベクトル長さはcondWeightで与える。
@@ -93,7 +103,7 @@ export function matrixize(inScript, params, noder) {
   similarity=(wordVector, tsWeight*cosθ, condWeight*condVector)
 
    */
-  const {tailing, condWeight} = params;
+  const {tailing, condWeight, timeWeight} = params;
   let m;
   let i;
   const condVocab = {}; // 条件タグのvocab
@@ -108,7 +118,7 @@ export function matrixize(inScript, params, noder) {
     const data = [];
     for (const line of block) {
       // line={head,text,timestamp}
-      const nodes = noder.nodify(line);
+      const nodes = noder.nodify(line[1]);
       data.push(nodes);
       for (const node of nodes) {
         m = node.feat.match(RE_COND_TAG);
@@ -163,7 +173,7 @@ export function matrixize(inScript, params, noder) {
         m = node.feat.match(RE_COND_TAG);
         if (m) {
           const pos = condVocab[m[2]];
-          cvb.set([i, pos], m[1] === '?' ? condWeight : -condWeight);
+          cvb.set([i, pos], m[1] === '?' ? 1 : -1);
         } else if (node.feat in wordVocab) {
           const pos = wordVocab[node.feat];
           wvb.set([i, pos], wvb.get([i, pos]) + 1);
@@ -184,6 +194,8 @@ export function matrixize(inScript, params, noder) {
   const cvSize = size(cv).toArray();
   wv = subset(wv, index(range(1, wvSize[0]), range(0, wvSize[1])));
   cv = subset(cv, index(range(1, cvSize[0]), range(0, cvSize[1])));
+  wvSize[0]--;
+  cvSize[0]--;
 
   // 成分は非負で類似度計算の際、通常の単語はnorm=1に正規化した上で
   // 内積を計算して類似度とする。条件タグは
@@ -198,20 +210,22 @@ export function matrixize(inScript, params, noder) {
   const invWv = apply(wv, 1, (x) => divide(1, norm(x) || 1));
   wv = multiply(diag(invWv), wv);
 
-  /* -------------------------
+  /* -----------------------------------------------------
 
-     タイムスタンプ行列(1列)
+           タイムスタンプ行列(2列)の生成
+     [ts,ts]がretrieveの際に[date,time]として扱われる
 
-  --------------------------  */
+  -------------------------------------------------------  */
 
-  const tsMatrix = zeros(wv.length, 1);
+  const timeMatrix = dotMultiply(ones(wvSize[0], 2), NaN);
   i = 0;
   for (const block of inScript) {
     for (const line of block) {
-      const ts = line.timestamp;
-      if (ts) {
-        tsMatrix.set([0, i], ts);
-      }
+      const ts = line[2];
+      subset(timeMatrix, index(i, [0, 1]), [
+        time2yearRad(ts),
+        time2dateRad(ts),
+      ]);
     }
   }
 
@@ -223,7 +237,12 @@ export function matrixize(inScript, params, noder) {
     condVocab: condVocab,
     wordMatrix: wv,
     condMatrix: cv,
-    tsMatrix: tsMatrix,
+    timeMatrix: timeMatrix,
+    condWeight: condWeight,
+    timeWeight: timeWeight,
+    prevWv: zeros(1, wvSize[1]),
+    prevCv: zeros(1, cvSize[1]),
+    delayEffect: delayEffector(2, tailing),
   };
 }
 
@@ -349,7 +368,6 @@ export function preprocess(script, validAvatars, defaultAvatar) {
     if (head.startsWith('#')) {
       continue;
     }
-
     // with文
     if (head === 'with') {
       withLine = text;
@@ -389,7 +407,7 @@ export function preprocess(script, validAvatars, defaultAvatar) {
     if (head === 'user') {
       if (prevKind === KIND_USER) {
         // user行が連続する場合は{prompt}を挟む
-        block.push(['peace', '{prompt}', null, null]);
+        block.push(['peace', `{prompt}${withLine}`, null, null]);
       }
       block.push(parsed);
       prevKind = KIND_USER;

@@ -161,10 +161,36 @@ export function getSunset(t) {
 export function time2yearRad(t) {
   // 一年は356.25日*24h*60min*60sec*1000msec。それが2πになるよう変換
   // 一年の始点終点はlocaleに合わせる
+  if (!t) {
+    return NaN;
+  }
+
   const ty = t.toLocaleDateString().slice(0, 4);
 
   const tStart = new Date(`${ty}-01-01T00:00:00+09:00`);
   const tEnd = new Date(`${ty}-12-31T23:59:59.999+09:00`);
   const rad = ((t - tStart) / (tEnd - tStart)) * 2.0 * Math.PI;
+  return rad;
+}
+
+/**
+ * timeをradに変換
+ * @param {datetime} t datetime
+ * @return {Float} rad値
+ */
+export function time2dateRad(t) {
+  // 一日は24h*60min*60sec*1000msec。それが2πになるように変換
+  // 一日の始点終点はlocaleに合わせる
+
+  if (!t) {
+    return NaN;
+  }
+
+  const ts = t.toLocaleTimeString('jp');
+  const [h, m, s] = ts.split(':');
+  const ms = Number(h) * 60 * 60 + Number(m) * 60 + Number(s);
+  const msStart = 0;
+  const msEnd = 23 * 60 * 60 + 59 * 60 + 59;
+  const rad = ((ms - msStart) / (msEnd - msStart)) * 2.0 * Math.PI;
   return rad;
 }

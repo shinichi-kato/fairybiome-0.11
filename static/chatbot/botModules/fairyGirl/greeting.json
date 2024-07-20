@@ -1,7 +1,7 @@
 {
     "updatedAt":"2024-06-01T06:04:05.000Z",
     "script": [
-        "with {?!greeting}",
+        "with {!greeting}",
         "avatar peace",
         "user こんにちは",
         "cheer 今日は！{+greeting}",

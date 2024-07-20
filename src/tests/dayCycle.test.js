@@ -1,6 +1,7 @@
 import {expect, describe, it} from 'vitest';
 import {
   time2yearRad,
+  time2dateRad,
   getSunset,
   getSunrise,
   getTodayCycle,
@@ -14,6 +15,13 @@ describe('dayCycle', () => {
       console.log(t, time2yearRad(t));
     }
     expect(1).toBe(1);
+  });
+
+  it('time2dateRad', () => {
+      const t = new Date(2024, 5, 6, 23,59,59);
+      const r = time2dateRad(t);
+      console.log(t, time2dateRad(t));
+    expect(r).toBe(6.283185307179586);
   });
 
   it('getSunset/getSunrise', () => {

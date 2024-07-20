@@ -5,6 +5,7 @@ import {Dbio} from '../dbio';
 
 const RE_TAG_LINE = /^(\{[a-zA-Z0-9_]+\}) (.+)$/;
 const RE_EXPAND_TAG = /^\{([a-zA-Z_][a-zA-Z0-9_]*)\}/;
+const LI_LOWERCASE = 'abcdefghijklmnopqrstuvwxyz'.split('');
 
 /**
  * IndexedDB上に記憶したbot情報のI/O
@@ -23,6 +24,7 @@ class BotDxIo extends Dbio {
     this.updateTagValue = this.updateTagValue.bind(this);
     this.decodeTag = this.decodeTag.bind(this);
     this.readTag = this.readTag.bind(this);
+    this.writeTag = this.writeTag.bind(this);
     this.uploadDxWordToTagList = this.uploadDxWordToTagList.bind(this);
     this.downloadDxWordToTagList = this.downloadDxWordToTagList.bind(this);
   }
@@ -218,6 +220,23 @@ class BotDxIo extends Dbio {
   }
 
   /**
+   * memryにkey,valueのペアを上書きする
+   * @param {String} key キー文字列
+   * @param {String} value 格納する値
+   * @param {String} botId botのId
+   * @param {String} moduleName botのmoduleName(optional)
+   * @return {Promise}
+   */
+  async writeTag(key, value, botId, moduleName = 'main') {
+    return await this.db.memory.put({
+      key: key,
+      botId: botId,
+      moduleName: moduleName,
+      value: value,
+    });
+  }
+
+  /**
    * db.memoryのtagに対応するvalueのリストを返す。展開はしない
    * @param {string} key key文字列
    * @param {string} botId botId
@@ -243,6 +262,36 @@ class BotDxIo extends Dbio {
     const snap = partSnap || mainSnap;
 
     return (snap && snap.value) || defaultValue;
+  }
+
+  /**
+   * condVocabに書かれた全keyの現在の値を返す
+   * @param {Object} condVocab matrix.condVocab
+   * @param {String} botId botのId
+   * @return {Array} cond
+   */
+  async readCondTags(condVocab, botId) {
+    const condKeys = Object.keys(condVocab);
+    return await Promise.all(
+      condKeys.map(async (key) => {
+        const snap = await this.db.memory
+          .where(['botId', 'moduleName', 'key'])
+          .equals([botId, 'main', key])
+          .first();
+        return {key: key, value: snap ? 1 : 0};
+      })
+    );
+  }
+
+  /**
+   * botIdに属するsessionタグを削除
+   * @param {*} botId botのId
+   */
+  async clearSessionTags(botId) {
+    await this.db.memory
+      .where('key')
+      .startsWithAnyOf(LI_LOWERCASE)
+      .delete();
   }
 
   /**

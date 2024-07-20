@@ -1,6 +1,7 @@
 /*
  */
 
+import {randomInt} from 'mathjs';
 import {botDxIo} from '../BotDxIo';
 
 export const main = {
@@ -28,6 +29,21 @@ export const main = {
     main.alarms = m.alarms;
     main.avatarDir = m.avatarDir;
     main.backgroundColor = m.backgroundColor;
+    main.responseIntervals = await botDxIo.readTag(
+      '{RESPONSE_INTERVALS}',
+      botId
+    );
+
+    // メッセージスプールの設定
+    main.proposalSpool = [];
+    main.channel.onmessage = (event) => {
+      const action = event.action;
+      switch (action.type) {
+        case 'propose': {
+          main.proposalSpool.push(action.message);
+        }
+      }
+    };
 
     // {BOT_NAME}チェック
 
@@ -39,13 +55,17 @@ export const main = {
     }
 
     // 開始状態の決定
-
     if (summon) {
       main.state = 'peace';
     } else {
       const onStart = await botDxIo.decodeTag('{ON_START}', botId);
       main.state = onStart.val;
     }
+
+    // sessionタグの削除
+    await botDxIo.clearSessionTags(botId);
+
+    // メッセージの収集
 
     return {
       displayName: botName,
@@ -55,9 +75,56 @@ export const main = {
     };
   },
 
-  run: async (action) => {
+  run: (action) => {
     // タイマーを起動しpart発言を集めて反応を生成
-    // 無言も検出
+    // ユーザの無反応も検出
+    if (action.type === 'run') {
+      main._loop();
+    }
+  },
+
+  _loop: () => {
+    main.integrate();
+    const ri = main.responseInterals;
+    const nextInterval = ri[randomInt(ri.length)];
+    setTimeout(main._loop, nextInterval);
+  },
+
+  userKeyTouch: async (action) => {
+    // ユーザがキー入力したことをキャッチ
+    // 「ユーザが無言」という状態を検知する
+  },
+
+  recieve: async (action) => {
+    // ユーザや環境からのメッセージを受取りパートに送る
+    main.channel.postMessage({type: 'input', message: action.message});
+  },
+
+  integrate: (action) => {
+    // ・パートからの入力を集めてその中からスコアの高い一つを選び
+    // パートに通知するとともに外部に返す
+    // ・userKeyTouchを集めて「ユーザの無言」を計数し
+    // {USER_NOT_RESPONDING}というメッセージを
+    // チャットボットに返す
+
+    let hit;
+    let s = 0;
+    for (let i = 0; i < main.proposalSpool.length; i++) {
+      const p = main.proposalSpool[i];
+      if (s <= p.score) {
+        s = p.score;
+        hit = p;
+      }
+    }
+
+    main.channel.postMessage({type: 'engage', toRender: hit});
+
+    // スプール消去
+    main.proposalSpool.main.proposalSpool = [];
+  },
+
+  reply: (action) => {
+    main.postMessage({type: 'reply', message: action.message});
   },
 
   pause: async (action) => {
