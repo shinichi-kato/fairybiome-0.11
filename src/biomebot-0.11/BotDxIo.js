@@ -288,22 +288,31 @@ class BotDxIo extends Dbio {
    * @param {*} botId botのId
    */
   async clearSessionTags(botId) {
-    await this.db.memory
-      .where('key')
-      .startsWithAnyOf(LI_LOWERCASE)
-      .delete();
+    await this.db.memory.where('key').startsWithAnyOf(LI_LOWERCASE).delete();
   }
 
   /**
    * wordToTagListをDxにアップロード
    * @param {Array} wordToTags 表層形とタグのリスト
    */
-  uploadDxWordToTagList(wordToTags) {
+  async uploadDxWordToTagList(wordToTags) {
+    // 今のコードではwordの重複があってもどれが重複していたか
+    // レポートできていない。
     // 内容が最新になっているか管理が難しいため
     // 全て削除して書き直す
-    this.db.wordTag.delete();
+    await this.db.wordTag.toCollection().delete();
+
+    // wordがuniqueかチェック
+    const test = {};
     for (const item of wordToTags) {
-      this.db.wordTag.add({
+      if (item.word in test) {
+        console.error('wordToTags conflict item', item);
+      } else {
+        test[item.word] = true;
+      }
+    }
+    for (const item of wordToTags) {
+      await this.db.wordTag.add({
         tag: item.tag,
         word: item.word,
       });

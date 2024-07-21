@@ -22,7 +22,7 @@ describe('Noder&matrix', () => {
         },
       },
     });
-    botDxIo.uploadDxWordToTagList(wordToTag);
+    await botDxIo.uploadDxWordToTagList(wordToTag);
     expect(1).toBe(1);
   });
 

@@ -183,8 +183,8 @@ export function graphqlToScheme(gqSnap, schemeName, botId) {
   };
 
   gqSnap.forEach((node) => {
-    if (node.parent.relativeDirectory === schemeName) {
-      const s = JSON.parse(node.parent.internal.content);
+    if (node.relativeDirectory === schemeName) {
+      const s = JSON.parse(node.internal.content);
       const u = new Date(s.updatedAt);
 
       if (scheme.updatedAt < u) {
@@ -195,7 +195,7 @@ export function graphqlToScheme(gqSnap, schemeName, botId) {
         data: {
           ...s,
           updatedAt: u,
-          moduleName: node.parent.name,
+          moduleName: node.name,
           schemeName: schemeName,
           botId: botId,
         },
@@ -213,8 +213,8 @@ export function graphqlToScheme(gqSnap, schemeName, botId) {
  */
 export function graphqlToWordTag(gqSnap) {
   const valueTagList = [];
-  for (const node of gqSnap.data.allJson.nodes) {
-    for (const token of node.token.values) {
+  for (const node of gqSnap) {
+    for (const token of node.values) {
       const [tag, values] = token.split(' ', 2);
       for (const w of values.split(',')) {
         valueTagList.push({tag: tag, word: w});

@@ -6,7 +6,7 @@ import AuthProvider from '../components/Auth/AuthProvider';
 import EcosystemProvider from '../components/Ecosystem/EcosystemProvider';
 import BiomebotProvider from '../biomebot-0.11/BiomebotProvider';
 import useFirebase from '../useFirebase';
-import ChatRoom from '../components/ChatRoom';
+import ChatRoom from '../components/ChatRoom/ChatRoom';
 
 /**
  * indexページ

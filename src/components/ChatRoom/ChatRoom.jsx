@@ -19,7 +19,7 @@ const panelWidth = 192;
  * @param {Object} firestore firestoreオブジェクト
  * @return {JSX.Element} コンポーネント
  */
-export default function ChatRoom(firestore) {
+export default function ChatRoom({firestore}) {
   const [text, setText] = useState('');
   const auth = useContext(AuthContext);
   const eco = useContext(EcosystemContext);
@@ -32,7 +32,6 @@ export default function ChatRoom(firestore) {
   const handleToBack = () => {
     // navigate
   };
-
   return (
     <Container maxWidth='xs'>
       <Box
@@ -58,7 +57,7 @@ export default function ChatRoom(firestore) {
             flexGrow: 1,
           }}
         >
-          <LogView uid={auth.uid} />
+          <LogView firestore={firestore} uid={auth.uid} />
         </Box>
         <Box
           sx={{

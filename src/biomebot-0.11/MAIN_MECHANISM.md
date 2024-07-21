@@ -15,6 +15,8 @@ mainはチャットボットの動作全体を統括する。
 ## run
 mainのタイマーを起動
 ↓
+ユーザ入力をmainに{type: input}としてポスト
+↓
 mainがbiomebotチャンネルに{type: input}としてユーザ入力をブロードキャスト
 ↓
 締切までに各partが返答を{type: propose}としてブロードキャスト

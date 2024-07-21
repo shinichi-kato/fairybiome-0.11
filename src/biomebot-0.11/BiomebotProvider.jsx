@@ -104,7 +104,7 @@ function randomlyChoosePCScheme(gqSnap) {
 
   const s = [];
   gqSnap.forEach((n) => {
-    const dir = n.parent.relativeDirectory;
+    const dir = n.relativeDirectory;
     if (!dir.startsWith('_') && !dir.startsWith('NPC')) {
       s.push(dir);
     }
@@ -126,42 +126,41 @@ const biomebotQuery = graphql`
       }
     }
     allJson {
-    nodes {
-      token {
-        values
-        type
-      }
-      parent {
-        ... on File {
-          relativeDirectory
-          name
-          internal {
-            content
-            description
+      nodes {
+        token {
+          values
+          type
+        }
+        parent {
+          ... on File {
+            relativeDirectory
+            name
+            internal {
+              content
+              description
+            }
+            sourceInstanceName
           }
         }
       }
     }
   }
-}
 `;
 
 const getChatbotSnap = (biomebotSnap) => {
-  const snap = {};
+  const snap = [];
   biomebotSnap.allJson.nodes.forEach((node) => {
-    if (node.name) {
-      snap.push(node);
+    if (node.parent.sourceInstanceName === 'botModules') {
+      snap.push(node.parent);
     }
   });
   return snap;
 };
 
 const getTokenSnap = (biomebotSnap) => {
-  const snap = {};
+  const snap = [];
   biomebotSnap.allJson.nodes.forEach((node) => {
-    if (node.token && node.token.type === 'ici') {
-      snap.push(node);
-    }
+    if (node.parent.sourceInstanceName === 'token') snap.push(node.token);
   });
   return snap;
 };
@@ -284,13 +283,20 @@ export default function BiomebotProvider({
   const biomebotSnap = useStaticQuery(biomebotQuery);
   const mainWorkersMapRef = useRef({});
   const partWorkersRef = useRef([]);
+  const logRef = collection(firestore, 'users', auth.uid, 'log');
 
   const writeLog = useCallback(
     (message) => {
-      const logRef = collection(firestore, 'users', auth.uid, 'log');
-      addDoc(logRef, message).then();
+      addDoc(logRef, message).then(() => {
+        if (message.kind === 'user') {
+          mainWorkersMapRef.current[state.botId].postMessage({
+            type: 'input',
+            message: message,
+          });
+        }
+      });
     },
-    [firestore, auth.uid]
+    [firestore, auth.uid, logRef]
   );
 
   // ---------------------------------------------------
@@ -331,43 +337,47 @@ export default function BiomebotProvider({
         currentSchemeName,
         botId,
         auth.uid
-      ).then((mods) => {
-        dispatch({type: 'setBotId', botId: botId, numOfModules: mods.length});
+      )
+        .then((mods) => {
+          dispatch({type: 'setBotId', botId: botId, numOfModules: mods.length});
 
-        // はじめにmainModuleをdeployする。
-        const mi = mods.indexOf('main');
-        const newMain = new MainWorker();
-        newMain.onmessage = function (event) {
-          const action = event.data;
-          if (action.type === 'reply') {
-            writeLog(action.message);
-          }
-          dispatch(action);
+          // はじめにmainModuleをdeployする。
+          const mi = mods.indexOf('main');
+          const newMain = new MainWorker();
+          newMain.onmessage = function (event) {
+            const action = event.data;
+            if (action.type === 'reply') {
+              writeLog(action.message);
+            }
+            dispatch(action);
 
-          if (action.type === 'deployed') {
-            // mainModuleのdeployが完了したらPartをdeployする
-            // これによりmainのmemoryをpartが参照できる
+            if (action.type === 'deployed') {
+              // mainModuleのdeployが完了したらPartをdeployする
+              // これによりmainのmemoryをpartが参照できる
 
-            for (let i = 0; i < mods.length; i++) {
-              if (i !== mi) {
-                const newPart = new PartWorker();
-                newPart.onmessage = function (event) {
-                  const action = event.data;
-                  dispatch(action);
-                };
-                newPart.postMessage({
-                  type: 'deploy',
-                  botId: botId,
-                  moduleName: mods[i],
-                });
-                partWorkersRef.current.push(newPart);
+              for (let i = 0; i < mods.length; i++) {
+                if (i !== mi) {
+                  const newPart = new PartWorker();
+                  newPart.onmessage = function (event) {
+                    const action = event.data;
+                    dispatch(action);
+                  };
+                  newPart.postMessage({
+                    type: 'deploy',
+                    botId: botId,
+                    moduleName: mods[i],
+                  });
+                  partWorkersRef.current.push(newPart);
+                }
               }
             }
-          }
-        };
-        newMain.postMessage({type: 'deploy', botId: botId});
-        mainWorkersMapRef.current = {[botId]: newMain};
-      });
+          };
+          newMain.postMessage({type: 'deploy', botId: botId});
+          mainWorkersMapRef.current = {[botId]: newMain};
+        })
+        .catch((error) => {
+          console.error("error raised",error);
+        });
     }
   }, [state.channel, auth.uid]);
 
@@ -387,9 +397,9 @@ export default function BiomebotProvider({
   /**
    * ユーザがキー入力中なことをbotのmainに通知
    */
-  function handleUserKeyTouch() {
+  const handleUserKeyTouch = useCallback(() => {
     mainWorkersMapRef.current[state.botId].userKeyTouch();
-  }
+  }, [state.botId]);
 
   return (
     <BiomebotContext.Provider

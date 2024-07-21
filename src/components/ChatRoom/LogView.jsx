@@ -183,7 +183,7 @@ export default function LogView({firestore, uid}) {
   useEffect(() => {
     let unsubscribe = null;
 
-    if (uid) {
+    if (uid && firestore) {
       console.log('subscribe start');
       const logRef = collection(firestore, 'users', uid, 'log');
       const q = query(logRef, orderBy('timestamp', 'desc'), limit(20));

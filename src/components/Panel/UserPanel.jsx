@@ -1,19 +1,23 @@
-import React from "react";
-import { withPrefix } from 'gatsby';
+import React from 'react';
+import {withPrefix} from 'gatsby';
 import Box from '@mui/material/Box';
 
-
-export default function UserPanel({ user, panelWidth }) {
+/**
+ * ユーザのアバター表示
+ * @param {Parameters.user} auth.userオブジェクト
+ * @param {Number} panelWidth
+ * @return {JSX.Elements} ユーザアバター
+ */
+export default function UserPanel({user, panelWidth}) {
   /*
   user:{
     displayName,
     backgroundColor,
     avatarDir
-  
   */
   const width = panelWidth;
-  const height = width * 4 / 3;
-  const photoURL = `/user/avatar/${user.avatarDir}/peace.svg`;
+  const height = (width * 4) / 3;
+  const photoURL = user ? `/user/avatar/${user.avatarDir}/peace.svg` : '';
 
   return (
     <Box
@@ -21,15 +25,16 @@ export default function UserPanel({ user, panelWidth }) {
         width: width,
         height: height,
       }}
-      position="relative">
+      position='relative'
+    >
       <Box
         sx={{
           width: width,
           height: width,
-          borderRadius: "100% 0% 0% 100% / 100% 100% 0% 0%",
-          backgroundColor: user.backgroundColor
+          borderRadius: '100% 0% 0% 100% / 100% 100% 0% 0%',
+          backgroundColor: user ? user.backgroundColor : '#EEEEEE',
         }}
-        position="absolute"
+        position='absolute'
         bottom={0}
         right={0}
       />
@@ -37,9 +42,10 @@ export default function UserPanel({ user, panelWidth }) {
         sx={{
           width: width,
           height: height,
-          p: 0, m: 0
+          p: 0,
+          m: 0,
         }}
-        position="absolute"
+        position='absolute'
         bottom={0}
         right={0}
       >
@@ -49,10 +55,9 @@ export default function UserPanel({ user, panelWidth }) {
             height: height,
           }}
           src={withPrefix(photoURL)}
-          alt={withPrefix(photoURL)} />
+          alt={withPrefix(photoURL)}
+        />
       </Box>
-
     </Box>
-
-  )
+  );
 }
