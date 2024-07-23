@@ -381,7 +381,7 @@ export default function AuthProvider({firebase, firestore, children}) {
   return (
     <AuthContext.Provider
       value={{
-        userRepr: {
+        user: {
           avatar: state.userProps.avatar,
           avatarDir: state.userProps.avatarDir,
           backgroundColor: state.userProps.backgroundColor,

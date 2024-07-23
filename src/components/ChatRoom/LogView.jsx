@@ -215,7 +215,7 @@ export default function LogView({firestore, uid}) {
     <ThemeProvider theme={customTheme}>
       <Box display='flex' flexDirection='column'>
         {log.map((message) => {
-          const id = message.speakerId;
+          const id = message.ownerId;
           if (!id) {
             return <SystemMessage key={message.id} message={message} />;
           } else if (id === uid) {

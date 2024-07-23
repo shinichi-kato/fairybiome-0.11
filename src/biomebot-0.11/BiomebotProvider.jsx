@@ -165,6 +165,16 @@ const getTokenSnap = (biomebotSnap) => {
   return snap;
 };
 
+const getValidBotAvatars = (biomebotSnap, avatarDir) => {
+  const avatars = [];
+  for (const node of biomebotSnap.allFile.nodes) {
+    if (node.relativeDirectory === avatarDir) {
+      avatars.push(node.name);
+    }
+  }
+  return avatars;
+};
+
 const initialState = {
   botId: null,
   botState: 'init',
@@ -188,6 +198,7 @@ const initialState = {
  * @return {object} 新しいstate
  */
 function reducer(state, action) {
+  console.log(action.type, action);
   switch (action.type) {
     case 'setChannel': {
       return {
@@ -223,6 +234,15 @@ function reducer(state, action) {
       if (completed) {
         return {
           ...state,
+          botState: 'deployed',
+          numOfDeployed: deployed,
+          botRepr: {
+            ...botRepr,
+          },
+        };
+      } else {
+        return {
+          ...state,
           botState: 'deploying',
           numOfDeployed: deployed,
           botRepr: {
@@ -230,16 +250,14 @@ function reducer(state, action) {
             avatar: `emerging${deployed % 4}`,
           },
         };
-      } else {
-        return {
-          ...state,
-          botState: 'deployed',
-          numOfDeployed: deployed,
-          botRepr: {
-            ...botRepr,
-          },
-        };
       }
+    }
+
+    case 'deployError': {
+      return {
+        ...state,
+        botState: `error in ${action.moduleName}`,
+      };
     }
 
     case 'run': {
@@ -280,10 +298,10 @@ export default function BiomebotProvider({
 }) {
   const auth = useContext(AuthContext);
   const [state, dispatch] = useReducer(reducer, initialState);
-  const biomebotSnap = useStaticQuery(biomebotQuery);
   const mainWorkersMapRef = useRef({});
   const partWorkersRef = useRef([]);
   const logRef = collection(firestore, 'users', auth.uid, 'log');
+  const biomebotSnap = useStaticQuery(biomebotQuery);
 
   const writeLog = useCallback(
     (message) => {
@@ -348,13 +366,17 @@ export default function BiomebotProvider({
             const action = event.data;
             if (action.type === 'reply') {
               writeLog(action.message);
+              return;
             }
             dispatch(action);
 
             if (action.type === 'deployed') {
               // mainModuleのdeployが完了したらPartをdeployする
               // これによりmainのmemoryをpartが参照できる
-
+              const validAvatars = getValidBotAvatars(
+                biomebotSnap,
+                action.botRepr.avatarDir
+              );
               for (let i = 0; i < mods.length; i++) {
                 if (i !== mi) {
                   const newPart = new PartWorker();
@@ -366,6 +388,7 @@ export default function BiomebotProvider({
                     type: 'deploy',
                     botId: botId,
                     moduleName: mods[i],
+                    validAvatars: validAvatars,
                   });
                   partWorkersRef.current.push(newPart);
                 }
@@ -376,7 +399,7 @@ export default function BiomebotProvider({
           mainWorkersMapRef.current = {[botId]: newMain};
         })
         .catch((error) => {
-          console.error("error raised",error);
+          console.error('error raised', error);
         });
     }
   }, [state.channel, auth.uid]);
@@ -386,6 +409,7 @@ export default function BiomebotProvider({
 
   useEffect(() => {
     if (state.botState === 'deployed') {
+      console.log(state)
       mainWorkersMapRef.current[state.botId].postMessage({
         type: 'run',
         summon: summon,

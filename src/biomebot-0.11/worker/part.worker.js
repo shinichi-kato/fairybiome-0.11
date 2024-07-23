@@ -42,7 +42,7 @@ onmessage = (event) => {
         if (result) {
           postMessage({type: 'deployed'});
         } else {
-          postMessage({type: 'deployError'});
+          postMessage({type: 'deployError', moduleName: part.moduleName});
         }
       });
 

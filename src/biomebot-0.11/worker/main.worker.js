@@ -49,7 +49,7 @@ onmessage = (event) => {
     }
 
     case 'run': {
-      main.run(action).then();
+      main.run(action);
       break;
     }
 

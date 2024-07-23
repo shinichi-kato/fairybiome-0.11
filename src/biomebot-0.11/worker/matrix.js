@@ -345,7 +345,7 @@ export function preprocess(script, validAvatars, defaultAvatar) {
 
   const parseLine = (line) => {
     const [head, text] = line.text.split(' ', 2);
-    const [body, ts1] = text.split('\t', 2);
+    const [body, ts1] = text ? text.split('\t', 2) : ['', null];
     const ts = line.timestamp || ts1;
     return [head, body, ts && new Date(Number(ts))];
   };

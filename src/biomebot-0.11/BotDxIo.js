@@ -56,7 +56,7 @@ class BotDxIo extends Dbio {
     // indexedDBへのアップロード。
 
     for (const module of scheme.botModules) {
-      await this.db.botModules.add({
+      await this.db.botModules.put({
         fsId: module.fsId,
         data: {
           ...module.data,
@@ -288,7 +288,9 @@ class BotDxIo extends Dbio {
    * @param {*} botId botのId
    */
   async clearSessionTags(botId) {
-    await this.db.memory.where('key').startsWithAnyOf(LI_LOWERCASE).delete();
+    await this.db.memory
+      .filter((mem) => mem.key.startsWith(LI_LOWERCASE))
+      .delete();
   }
 
   /**
@@ -296,26 +298,23 @@ class BotDxIo extends Dbio {
    * @param {Array} wordToTags 表層形とタグのリスト
    */
   async uploadDxWordToTagList(wordToTags) {
-    // 今のコードではwordの重複があってもどれが重複していたか
-    // レポートできていない。
     // 内容が最新になっているか管理が難しいため
     // 全て削除して書き直す
     await this.db.wordTag.toCollection().delete();
 
-    // wordがuniqueかチェック
-    const test = {};
+    // wordが重複していたら警告
     for (const item of wordToTags) {
-      if (item.word in test) {
-        console.error('wordToTags conflict item', item);
+      const w = item.word;
+      const node = await this.db.wordTag.where('word').equals(w).first();
+      if (node) {
+        console.warning('wordTag duplicated, overwrited', node);
+        await this.db.wordTag.update(node.id, {word: w});
       } else {
-        test[item.word] = true;
+        await this.db.wordTag.add({
+          tag: item.tag,
+          word: item.word,
+        });
       }
-    }
-    for (const item of wordToTags) {
-      await this.db.wordTag.add({
-        tag: item.tag,
-        word: item.word,
-      });
     }
   }
 

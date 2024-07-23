@@ -21,14 +21,16 @@ export const main = {
    */
   deploy: async ({botId, summon}) => {
     const m = await botDxIo.downloadDxModule(botId, 'main');
+    console.log(m);
+    const d = m.data;
     main.botId = botId;
-    main.schemeName = m.schemeName;
-    main.author = m.author;
-    main.updatedAt = m.updatedAt;
-    main.description = m.descrption;
-    main.alarms = m.alarms;
-    main.avatarDir = m.avatarDir;
-    main.backgroundColor = m.backgroundColor;
+    main.schemeName = d.schemeName;
+    main.author = d.author;
+    main.updatedAt = d.updatedAt;
+    main.description = d.descrption;
+    main.alarms = d.alarms;
+    main.avatarDir = d.avatarDir;
+    main.backgroundColor = d.backgroundColor;
     main.responseIntervals = await botDxIo.readTag(
       '{RESPONSE_INTERVALS}',
       botId
@@ -85,7 +87,7 @@ export const main = {
 
   _loop: () => {
     main.integrate();
-    const ri = main.responseInterals;
+    const ri = main.responseIntervals;
     const nextInterval = ri[randomInt(ri.length)];
     setTimeout(main._loop, nextInterval);
   },
@@ -120,7 +122,7 @@ export const main = {
     main.channel.postMessage({type: 'engage', toRender: hit});
 
     // スプール消去
-    main.proposalSpool.main.proposalSpool = [];
+    main.proposalSpool = [];
   },
 
   reply: (action) => {

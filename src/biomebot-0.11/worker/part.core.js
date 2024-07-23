@@ -14,9 +14,9 @@ export const part = {
     const {botId, moduleName, validAvatars} = action;
     const p = await botDxIo.downloadDxModule(botId, moduleName);
     part.botId = botId;
-    part.moduleId = p.moduleId;
-    part.schemeName = p.schemeName;
-    part.moduleName = p.moduleName;
+    part.moduleId = p.fsId;
+    part.schemeName = p.data.schemeName;
+    part.moduleName = p.data.moduleName;
     part.validAvatars = validAvatars;
     part.defaultAvatar = botDxIo.readTag('{DEFALUT_AVATAR}', botId, 'peace');
     part.calcParams = {
@@ -29,6 +29,8 @@ export const part = {
     await part.noder.loadTags();
 
     part._calc_matrix();
+
+    return true;
   },
 
   recieve: async (action) => {

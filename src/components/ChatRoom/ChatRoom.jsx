@@ -11,8 +11,9 @@ import UserPanel from '../Panel/UserPanel';
 import FairyPanel from '../Panel/FairyPanel';
 import LogView from './LogView';
 
-const panelWidth = 192;
+import {MessageFactory} from '../../message';
 
+const panelWidth = 192;
 
 /**
  * チャットルーム
@@ -32,6 +33,14 @@ export default function ChatRoom({firestore}) {
   const handleToBack = () => {
     // navigate
   };
+
+  const handleSend = () => {
+    const message = new MessageFactory(text, {
+      user: auth.user,
+      ecosys: eco.ecoState,
+    });
+    bot.writeLog(message.toObject());
+  };
   return (
     <Container maxWidth='xs'>
       <Box
@@ -46,7 +55,7 @@ export default function ChatRoom({firestore}) {
             text={text}
             handleChangeText={handleChangeText}
             handleToBack={handleToBack}
-            handleSend={bot.writeLog}
+            handleSend={handleSend}
           />
         </Box>
         <Box
@@ -66,7 +75,7 @@ export default function ChatRoom({firestore}) {
           }}
         >
           <Box>
-            <FairyPanel state={bot.state} panelWidth={panelWidth} />
+            <FairyPanel repr={bot.botRepr} panelWidth={panelWidth} />
           </Box>
           <Box sx={{flexGrow: 1}} />
           <Box>

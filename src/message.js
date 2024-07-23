@@ -22,7 +22,7 @@ export class MessageFactory {
   /**
    * コンストラクタ. user,bot,ecosysはいずれか一つまたはなし
    * @param {String} data メッセージ文字列
-   * @param {Object} prop.user auth.userReprオブジェクト
+   * @param {Object} prop.user auth.userオブジェクト
    * @param {Object} prop.bot botReprオブジェクト
    * @param {Object} prop.ecosys ecosysオブジェクト
    */
@@ -96,7 +96,7 @@ export class MessageFactory {
       avatarDir: this.avatarDir,
       ownerId: this.ownerId,
       avatar: this.avatar,
-      background: this.background,
+      backgroundColor: this.backgroundColor,
       displayName: this.displayName,
       ecoState: this.ecoState,
       timestamp: this.timestamp,
