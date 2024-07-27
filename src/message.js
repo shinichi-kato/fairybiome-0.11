@@ -9,10 +9,10 @@
  * ボット発言：
  *  const m = new Message(text, {bot:botState, ecosys:ecoState});
  *
- * 環境からの入力
- *  const m = new Message(text, {ecosys: true})
- *  天候や場所が変化したことを伝えるトリガ情報をtextにタグとして
- *  伝達する。
+ * それ以外からの入力
+ *  const m = new Message(text, {cue: true})
+ *  天候や場所が変化したことを伝えるキュー情報や{!on_start}のような
+ *  タグをtextにして伝達する。
  *
  * システムメッセージ
  *  const m = new Message(text);
@@ -26,7 +26,7 @@ export class MessageFactory {
    * @param {Object} prop.bot botReprオブジェクト
    * @param {Object} prop.ecosys ecosysオブジェクト
    */
-  constructor(data, {user, bot, ecosys, timestamp}) {
+  constructor(data, {user, bot, cue, ecosys, timestamp}) {
     if (!data) {
       this.text = '';
       this.kind = '';
@@ -45,18 +45,9 @@ export class MessageFactory {
       this.ecoState = data.ecoState;
       this.timestamp = data.timestamp;
     } else {
-      this.text = data;
       this.timestamp = timestamp || new Date();
-
-      if (user) {
-        this.kind = 'user';
-        this.avatarDir = user.avatarDir;
-        this.avatar = user.avatar;
-        this.ownerId = user.uid;
-        this.backgroundColor = user.backgroundColor;
-        this.displayName = user.displayName;
-        this.ecoState = ecosys || null;
-      } else if (bot) {
+      this.text = data;
+      if (bot) {
         this.kind = 'bot';
         this.avatarDir = bot.avatarDir;
         this.ownerId = bot.botId;
@@ -64,15 +55,23 @@ export class MessageFactory {
         this.displayName = bot.displayName;
         this.backgroudColor = bot.backgroundColor;
         this.ecoState = ecosys || null;
-      } else if (ecosys === true) {
-        this.kind = 'ecosys';
+        this.text = data.text;
+      } else if (user) {
+        this.kind = 'user';
+        this.avatarDir = user.avatarDir;
+        this.avatar = user.avatar;
+        this.ownerId = user.uid;
+        this.backgroundColor = user.backgroundColor;
+        this.displayName = user.displayName;
+        this.ecoState = ecosys || null;
+      } else if (cue === true) {
+        this.kind = 'cue';
         this.avatarDir = null;
         this.ownerId = null;
         this.avatar = null;
         this.backgroundColor = null;
         this.displayName = null;
         this.ecoState = null;
-        // 伝達内容はtext
       } else {
         this.kind = 'system';
         this.avatarDir = null;

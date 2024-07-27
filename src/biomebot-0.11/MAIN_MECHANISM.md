@@ -10,19 +10,23 @@ mainはチャットボットの動作全体を統括する。
 データのロード、必要な初期化を行う。
 セッションタグを削除。
 チャットボットは起動時に{ON_START}で決められたパートをactivateした状態で動作を始める。
-
+0: firestore, graphql, indexedDBに存在するデータをsyncし、最新版がindexedDBに
+    存在する状態にする。
+↓
+1 main: 
 
 ## run
-mainのタイマーを起動
+1 main: タイマーを起動。以降ユーザやecosystemから入力を受け取ったら
+        {type:input}としてブロードキャスト
 ↓
-ユーザ入力をmainに{type: input}としてポスト
+2 main: {ON_START}から選んだpartに対して{type: start}をブロードキャスト
 ↓
-mainがbiomebotチャンネルに{type: input}としてユーザ入力をブロードキャスト
+3 part: {type:start}を受け取ったらアクティベートして{!on_start}をretrieve、
+        retrieveした内容で{type:propose}をブロードキャスト
 ↓
-締切までに各partが返答を{type: propose}としてブロードキャスト
+4 main: タイマーで決めた時間全partからのproposeを待機した後一つを選んで
+      {type: engage}発行
 ↓
-返答の中から最もスコアの高いものに{type: engage}をブロードキャストで発行
+5 part: {type:engage}を受け取ったら出力文字列を生成して{type:render} 
 ↓
-該当partはwordタグの記憶し、返答をテキスト化するとともに辞書に記憶する。返答を{type: reply}で返す
-↓
-mainは受け取った内容をmessage化してチャットにポストする
+6 main: {type:render}を受け取ったらチャットにpost

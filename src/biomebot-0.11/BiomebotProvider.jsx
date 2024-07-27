@@ -409,10 +409,8 @@ export default function BiomebotProvider({
 
   useEffect(() => {
     if (state.botState === 'deployed') {
-      console.log(state)
       mainWorkersMapRef.current[state.botId].postMessage({
         type: 'run',
-        summon: summon,
       });
       dispatch({type: 'run'});
     }

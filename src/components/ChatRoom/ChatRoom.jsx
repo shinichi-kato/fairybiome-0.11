@@ -79,7 +79,7 @@ export default function ChatRoom({firestore}) {
           </Box>
           <Box sx={{flexGrow: 1}} />
           <Box>
-            <UserPanel user={auth.userProps} panelWidth={panelWidth} />
+            <UserPanel user={auth.user} panelWidth={panelWidth} />
           </Box>
         </Box>
       </Box>

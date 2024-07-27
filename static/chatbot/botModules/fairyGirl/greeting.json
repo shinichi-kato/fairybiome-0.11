@@ -1,8 +1,11 @@
 {
     "updatedAt":"2024-06-01T06:04:05.000Z",
     "script": [
+        "{DEFAULT_AVATAR} cheer",
         "with {!greeting}",
         "avatar peace",
+        "cue {!greeting}",
+        "bot こんにちは！",
         "user こんにちは",
         "cheer 今日は！{+greeting}",
         "",

@@ -49,11 +49,6 @@ onmessage = (event) => {
       break;
     }
 
-    case 'run': {
-      part.run(action).then();
-      break;
-    }
-
     case 'kill': {
       part.kill();
       break;

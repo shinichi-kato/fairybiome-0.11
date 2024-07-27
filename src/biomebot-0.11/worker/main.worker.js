@@ -40,10 +40,12 @@ onmessage = (event) => {
   console.log('mainWorker recieved', action);
   switch (action.type) {
     case 'deploy': {
-      main.deploy(action).then((botRepr) => {
-        if (botRepr) {
-          postMessage({type: 'deployed', botRepr: botRepr});
-        }
+      main.deploy(action).then((result) => {
+        postMessage({
+          type: 'deployed',
+          startingPart: result.startingPart,
+          botRepr: result.botRepr,
+        });
       });
       break;
     }

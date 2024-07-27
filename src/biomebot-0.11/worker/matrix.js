@@ -14,7 +14,7 @@ with {?tag} 指定したタグはユーザ発言には暗黙的に必ず付属�
 user text\ttimestamp ユーザ入力
 peace text\ttimestamp チャットボットの返答（avatar指定)
 bot text\ttimestamp
-eco tag
+cue tag
 ```
 # で始まる行はコメント行で無視する。
 大文字タグ {CAPITAL} で始まる行はシステムタグの定義
@@ -253,7 +253,7 @@ export function matrixize(inScript, params, noder) {
  */
 export function tee(script) {
   /* proprocessで処理されたスクリプトはブロックのリストになっている。
-     一つのブロックはinput(ecoまたはuser)、output(bot行)が交互に
+     一つのブロックはinput(cueまたはuser)、output(bot行)が交互に
      現れる。これらをブロックごとにinScript,outScriptに分割 */
 
   const inScript = [];
@@ -265,7 +265,7 @@ export function tee(script) {
   let i = 0;
   for (const block of script) {
     for (const line of block) {
-      if (line[0] === 'user' || line[0] === 'eco') {
+      if (line[0] === 'user' || line[0] === 'cue') {
         inBlock.push(line);
       } else {
         outBlock.push(line);
@@ -307,7 +307,7 @@ export function preprocess(script, validAvatars, defaultAvatar) {
         timestamp: timestamp
       },...
      ]
-     head: "bot", validAvatars, "user", "eco"のいずれか
+     head: "bot", validAvatars, "user", "cue"のいずれか
      text: 台詞
      timstamp: 発言の行われた日付時刻(valueOf()形式)
      ecoState: 天候とロケーションの情報をコード化したもの
@@ -339,7 +339,7 @@ export function preprocess(script, validAvatars, defaultAvatar) {
   let withLine = '';
   let prevKind = null;
   let block = [];
-  let isEcoOrUserExists = false;
+  let isCueOrUserExists = false;
   let isBotExists = false;
   const errors = [];
 
@@ -380,26 +380,26 @@ export function preprocess(script, validAvatars, defaultAvatar) {
     // 空行
     if (text.match(RE_BLANK_LINE)) {
       // 空行はブロックのはじめとみなす
-      if (block.length !== 0 && isEcoOrUserExists && isBotExists) {
+      if (block.length !== 0 && isCueOrUserExists && isBotExists) {
         newScript.push([...block]);
         block = [];
         isBotExists = false;
-        isEcoOrUserExists = false;
+        isCueOrUserExists = false;
       }
       continue;
     }
 
-    // eco行
-    if (head === 'eco') {
-      // eco行はブロックのはじめとみなす
-      if (block.length !== 0 && isEcoOrUserExists && isBotExists) {
+    // cue行
+    if (head === 'cue') {
+      // cue行はブロックのはじめとみなす
+      if (block.length !== 0 && isCueOrUserExists && isBotExists) {
         newScript.push([...block]);
         block = [];
         isBotExists = false;
-        isEcoOrUserExists = false;
+        isCueOrUserExists = false;
       }
       block.push(parsed);
-      isEcoOrUserExists = true;
+      isCueOrUserExists = true;
       continue;
     }
 
@@ -411,7 +411,7 @@ export function preprocess(script, validAvatars, defaultAvatar) {
       }
       block.push(parsed);
       prevKind = KIND_USER;
-      isEcoOrUserExists = true;
+      isCueOrUserExists = true;
       continue;
     }
 
