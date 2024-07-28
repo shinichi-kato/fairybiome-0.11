@@ -3,9 +3,8 @@
     "script": [
         "{DEFAULT_AVATAR} cheer",
         "with {!greeting}",
-        "avatar peace",
-        "cue {!greeting}",
-        "bot こんにちは！",
+        "cue {!on_start}",
+        "bot こんにちは！{+on_start}",
         "user こんにちは",
         "cheer 今日は！{+greeting}",
         "",

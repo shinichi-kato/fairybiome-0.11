@@ -35,12 +35,12 @@ import {part} from './part.core';
 
 onmessage = (event) => {
   const action = event.data;
-  console.log('partWorker recieved', action);
+  // console.log('partWorker recieved', action);
   switch (action.type) {
     case 'deploy': {
       part.deploy(action).then((result) => {
         if (result) {
-          postMessage({type: 'deployed'});
+          postMessage({type: 'deployed', moduleName: part.moduleName});
         } else {
           postMessage({type: 'deployError', moduleName: part.moduleName});
         }

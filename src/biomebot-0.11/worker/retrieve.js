@@ -23,6 +23,7 @@ import {
 
 import {botDxIo} from '../BotDxIo';
 import {time2yearRad, time2dateRad} from '../../components/Ecosystem/dayCycle';
+const RE_COND_TAG = /^\{(\?|!|\?!)([a-zA-Z_][a-zA-Z0-9_]*)\}/;
 
 /**
  * messageから返答の候補を返す
@@ -40,13 +41,13 @@ export async function retrieve(message, source, botId, noder) {
     類似度の計算にはwordMatrix, condMatrix, timeMatrixの3つを利用する。
 
     ## wordMatrix
-    wordMatrixは単語や文節単位で生成したvectorで、messageのなかの
+    wordMatrixは単語や文節を特徴量として生成したvectorで、messageのなかの
     wvとの間で類似度を計算する。
 
     ## condMatrix
 
     condMatrixは{?tag}や{!tag}などの条件タグで、matrixに{?tag}があり
-    memoryにも{tag}があるときは条件に一致したとみなして値は1とする。
+    memoryやmessageにも{tag}があるときは条件に一致したとみなして値は1とする。
     状況としては雨が降っているときに「雨が降ってるね」と発言しやすく
     なる。逆に{?tag}があるが{tag}がないときは値は-1にする。これにより
     雨が降っていないときに「雨が降ってるね」と発言しにくくなる。
@@ -95,8 +96,9 @@ export async function retrieve(message, source, botId, noder) {
   */
 
   //   wv, cv, tvの生成
-  const [wv, unknown] = generateWv(message, source, noder);
-  const cv = await generateCv(source, botId);
+  const nodes = noder.nodify(message.text);
+  const [wv, unknown] = generateWv(nodes, source);
+  const cv = await generateCv(nodes, source, botId);
   const tv = generateTv(message);
 
   if (unknown.state === -1) {
@@ -109,6 +111,7 @@ export async function retrieve(message, source, botId, noder) {
   const tvsim = apply(source.timeMatrix, 1, (x) =>
     timeSimilarity(squeeze(x), tv)
   );
+
 
   // 重み付けスコア計算
   const scores = add(
@@ -139,14 +142,12 @@ export async function retrieve(message, source, botId, noder) {
 
 /**
  * wvの生成
- * @param {*} message 入力メッセージ
+ * @param {*} nodes 入力メッセージをnodifyしたもの
  * @param {*} source metrix Object
  * @param {*} noder noderインスタンス
  * @return {Array} [wv, unknown]
  */
-function generateWv(message, source, noder) {
-  const nodes = noder.nodify(message.text);
-
+function generateWv(nodes, source) {
   /* ---------------------------------------------
 
      wordVectorの生成
@@ -164,7 +165,7 @@ function generateWv(message, source, noder) {
       // 既知のword
 
       const pos = source.wordVocab[node.feat];
-      wv.set([0, pos], wv.get([0, pos] + 1));
+      wv.set([0, pos], wv.get([0, pos]) + 1);
       if (unknown.state > 0) {
         // unknownの終了
         unknown.state = -1;
@@ -200,19 +201,35 @@ function generateWv(message, source, noder) {
 }
 
 /**
- * CVの生成
+ * memoryおよび入力文字列からのCVの生成
+ * @param {Array} nodes テキストをnodifyして得られたnode列
  * @param {Object} source matrixObject
  * @param {String} botId botのId
  * @return {matrix} cv
  */
-async function generateCv(source, botId) {
+async function generateCv(nodes, source, botId) {
   const cv = zeros(1, source.condVocabLength);
 
+  // memoryに格納されたcondTagをcvに取り込む
   const condSnap = await botDxIo.readCondTags(source.condVocab, botId);
   for (const item of condSnap) {
     const pos = source.condVocab[item.key];
-    cv.set([0, pos], item.value);
+    cv.set([0, pos], Number(item.value));
   }
+
+  // 入力文字列に含まれる条件タグをcvに取り込む。
+  // 辞書になかった条件タグは無視する
+  let m;
+  for (const node of nodes) {
+    m = node.feat.match(RE_COND_TAG);
+    if (m) {
+      if (m[2] in source.condVocab) {
+        const pos = source.condVocab[m[2]];
+        cv.set([0, pos], m[1] === '?' ? 1 : -1);
+      }
+    }
+  }
+  console.log(cv);
   return squeeze(cv);
 }
 

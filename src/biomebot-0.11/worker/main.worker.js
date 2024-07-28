@@ -37,7 +37,7 @@ import {main} from './main.core';
 
 onmessage = (event) => {
   const action = event.data;
-  console.log('mainWorker recieved', action);
+  // console.log('mainWorker recieved', action);
   switch (action.type) {
     case 'deploy': {
       main.deploy(action).then((result) => {

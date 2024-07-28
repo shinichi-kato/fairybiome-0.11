@@ -19,14 +19,20 @@ export const part = {
     part.schemeName = p.data.schemeName;
     part.moduleName = p.data.moduleName;
     part.validAvatars = validAvatars;
-    part.defaultAvatar = botDxIo.readTag('{DEFALUT_AVATAR}', botId, 'peace');
+    part.defaultAvatar = await botDxIo.pickTag(
+      '{DEFALUT_AVATAR}',
+      botId,
+      'peace'
+    );
     part.calcParams = {
-      tailing: Number(botDxIo.readTag('{TAILING}', botId, 0.6)),
-      condWeight: Number(botDxIo.readTag('{CONDITION_WEIGHT}', botId, 1)),
-      timeWeight: Number(botDxIo.readTag('{TIMESTAMP_WEIGHT}', botId, 0.2)),
+      tailing: Number(await botDxIo.pickTag('{TAILING}', botId, 0.6)),
+      condWeight: Number(await botDxIo.pickTag('{CONDITION_WEIGHT}', botId, 1)),
+      timeWeight: Number(
+        await botDxIo.pickTag('{TIMESTAMP_WEIGHT}', botId, 0.2)
+      ),
     };
     part.noder = new Noder(botId);
-    part.retention = Number(botDxIo.readTag('{RETENTION}', botId, 0.8));
+    part.retention = Number(botDxIo.pickTag('{RETENTION}', botId, 0.8));
 
     await part.noder.loadTags();
 
@@ -35,7 +41,7 @@ export const part = {
     part.channel.onmessage = (event) => {
       const action = event.data;
       if (action.moduleName === part.moduleName) {
-        console.log(part.moduleName, "get ", action);
+        console.log(part.moduleName, 'get ', action);
         switch (action.type) {
           case 'start': {
             part.start(action).then();

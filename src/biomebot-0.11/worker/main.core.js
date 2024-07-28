@@ -42,7 +42,7 @@ export const main = {
     main.proposalSpool = [];
     main.channel.onmessage = (event) => {
       const action = event.data;
-      console.log("main get" ,action);
+      console.log('main get', action);
       switch (action.type) {
         case 'propose': {
           main.proposalSpool.push({
@@ -93,15 +93,16 @@ export const main = {
     // activateはpartがdeployされたあとで実行されるため
     // それをpartに伝える
     let startingModuleName;
-    if (main.summon === true) {
+    if (main.summon) {
       startingModuleName = 'greeting';
     } else {
       startingModuleName = await botDxIo.decodeTag('{ON_START}', main.botId);
-      main.channel.postMessage({
-        type: 'start',
-        moduleName: startingModuleName,
-      });
     }
+    console.log('main starting ', startingModuleName);
+    main.channel.postMessage({
+      type: 'start',
+      moduleName: startingModuleName,
+    });
   },
 
   _loop: () => {

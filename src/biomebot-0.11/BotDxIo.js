@@ -24,6 +24,8 @@ class BotDxIo extends Dbio {
     this.updateTagValue = this.updateTagValue.bind(this);
     this.decodeTag = this.decodeTag.bind(this);
     this.readTag = this.readTag.bind(this);
+    this.pickTag = this.pickTag.bind(this);
+    this.expand = this.expand.bind(this);
     this.writeTag = this.writeTag.bind(this);
     this.uploadDxWordToTagList = this.uploadDxWordToTagList.bind(this);
     this.downloadDxWordToTagList = this.downloadDxWordToTagList.bind(this);
@@ -187,17 +189,17 @@ class BotDxIo extends Dbio {
      * @return {String} 展開後の文字列
      */
     async function expand(tag) {
-      const mainSnap = await db.memory
-        .where(['botId', 'moduleName', 'key'])
-        .equals([botId, 'main', tag])
-        .first();
-
-      const partSnap = await db.memory
+      let snap = await db.memory
         .where(['botId', 'moduleName', 'key'])
         .equals([botId, moduleName, tag])
         .first();
 
-      const snap = partSnap || mainSnap;
+      if (!snap) {
+        snap = await db.memory
+          .where(['botId', 'moduleName', 'key'])
+          .equals([botId, 'main', tag])
+          .first();
+      }
 
       if (!snap) {
         return tag;
@@ -245,23 +247,44 @@ class BotDxIo extends Dbio {
     * @param {string} moduleName 展開を要求したモジュールの名前  * @return {String} 展開した文字列
    */
   async readTag(key, botId, defaultValue = '', moduleName = 'main') {
+    // let snap = await this.db.memory
+    //   .where(['botId', 'moduleName', 'key'])
+    //   .equals([botId, moduleName, key])
+    //   .first();
+
+    // if (snap) {
+    //   return snap.value;
+    // }
+
+    // snap = await this.db.memory
+    //   .where(['botId', 'moduleName', 'key'])
+    //   .equals([botId, 'main', key])
+    //   .first();
+
+    return await this.expand(key, botId, defaultValue, moduleName);
+  }
+
+  /**
+   * タグに紐付けられた値の中から一つを選んで返す
+   * @param {*} key tag名
+   * @param {*} botId botのid
+   * @param {*} defaultValue 見つからなかった場合の代用値
+   * @param {*} moduleName モジュール名
+   * @return {String}
+   */
+  async pickTag(key, botId, defaultValue = null, moduleName = 'main') {
     // botIdのmemoryはmainとpartのスクリプトに記載されたタグで
     // 構成される。
     // partとmainで同じ名前の記憶があった場合partを優先する
     // タグに対応する値の中から一つをランダムに選ぶ。
-    const mainSnap = await this.db.memory
-      .where(['botId', 'moduleName', 'key'])
-      .equals([botId, 'main', key])
-      .first();
 
-    const partSnap = await this.db.memory
-      .where(['botId', 'moduleName', 'key'])
-      .equals([botId, moduleName, key])
-      .first();
+    const values = await this.expand(key, botId, null, moduleName);
 
-    const snap = partSnap || mainSnap;
+    if (!values) {
+      return defaultValue;
+    }
 
-    return (snap && snap.value) || defaultValue;
+    return values[randomInt(values.length)];
   }
 
   /**
@@ -328,6 +351,34 @@ class BotDxIo extends Dbio {
       .sortBy('word', (arr) =>
         arr.sort((a, b) => b.word.length - a.word.length)
       );
+  }
+
+  /**
+   * db.memoryのtagを展開し、文字列にして返す
+   * @param {string} key key文字列
+   * @param {string} botId botId
+   * @param {object} defaultValue 見つからなかった場合の代用値
+   * @param {string} moduleName 展開を要求したモジュールの名前
+   * @return {String} 展開した文字列
+   */
+  async expand(key, botId, defaultValue = null, moduleName = null) {
+    let snap;
+
+    if (moduleName) {
+      snap = await this.db.memory
+        .where(['botId', 'moduleName', 'key'])
+        .equals([botId, moduleName, key])
+        .first();
+
+      if (!snap) {
+        snap = await this.db.memory
+          .where(['botId', 'moduleName', 'key'])
+          .equals([botId, 'main', key])
+          .first();
+      }
+
+      return snap?.value || defaultValue;
+    }
   }
 }
 

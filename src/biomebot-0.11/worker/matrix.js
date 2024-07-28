@@ -90,7 +90,8 @@ export function matrixize(inScript, params, noder) {
   ■条件タグ
   inScriptの中での{?tag}{!tag}という表記はそのタグが記憶されて
   いるかどうかを検査する意味で、条件タグと呼ぶ。?や!を伴わない
-  {tag}は条件タグとして扱わない。
+  {BOT_NAME}のようなタグも、{!BOT_NAME}のようにすることで
+  その値が定義されているかどうかを検査できる。
   条件タグ以外はfeatの出現回数を正規化したもの行列化し、
   retrieve()内で内積をとって類似度とする。
   condのvectorはinスクリプトに書かれた条件タグを{?tag}は1、

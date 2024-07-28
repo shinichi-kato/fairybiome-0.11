@@ -5,7 +5,7 @@ import {Noder} from '../worker/noder';
 import systemTag from '../../../static/chatbot/token/system.json';
 import personTag from '../../../static/chatbot/token/person.json';
 import scriptJson from '../../../static/chatbot/botModules/fairyGirl/main.json';
-import foodScript from '../../../static/chatbot/botModules/fairyGirl/food.json';
+import greetingScript from '../../../static/chatbot/botModules/fairyGirl/greeting.json';
 import {graphqlToWordTag} from '../botio';
 import {preprocess, tee, matrixize} from '../worker/matrix';
 import {retrieve} from '../worker/retrieve';
@@ -15,13 +15,7 @@ describe('Noder&matrix', () => {
   const botId = 'user00Test01';
 
   it('fakeSystemTag', async () => {
-    const wordToTag = graphqlToWordTag({
-      data: {
-        allJson: {
-          nodes: [systemTag, personTag],
-        },
-      },
-    });
+    const wordToTag = graphqlToWordTag([systemTag.token, personTag.token]);
     await botDxIo.uploadDxWordToTagList(wordToTag);
     expect(1).toBe(1);
   });
@@ -41,7 +35,7 @@ describe('Noder&matrix', () => {
         {
           fsId: 'fakeFsId2',
           data: {
-            ...foodScript,
+            ...greetingScript,
             botId: botId,
             moduleName: 'food',
           },
@@ -56,10 +50,12 @@ describe('Noder&matrix', () => {
   it('Noder', async () => {
     await noder.loadTags();
 
-    expect(noder.wordToTags.length).toBe(110);
+    expect(noder.wordToTags.length).toBe(109);
     expect(noder.nameToTags.length).toBe(1);
 
-    const nodes = noder.nodify('こんにちは。しずくです。お父さんは強力です');
+    const nodes = noder.nodify(
+      'こんにちは。しずくです。お父さんは強力です{!on_start}'
+    );
 
     expect(nodes[4].feat).toBe('{BOT_NAME}');
   });
@@ -69,7 +65,7 @@ describe('Noder&matrix', () => {
   let script = [];
   it('downloadDxScript', async () => {
     script = await botDxIo.downloadDxScript('fakeFsId2');
-    expect(script.length).toBe(12);
+    expect(script.length).toBe(8);
   });
 
   let script3;
@@ -92,7 +88,7 @@ describe('Noder&matrix', () => {
   it('matrix-matrixize', () => {
     const params = {tailing: 0.7, condWeight: 1.2, timeWeight: 0.8};
     source = matrixize(script3.inScript, params, noder);
-    console.log("cMatrix",source.condMatrix)
+    console.log('cMatrix', source.condMatrix);
   });
 
   it('set test cond tag', async () => {
@@ -107,9 +103,9 @@ describe('Noder&matrix', () => {
       avatar: 'avatar',
       displayName: '名前',
     };
-    const msg = new MessageFactory('こんにちは', {user: user});
+    const msg = new MessageFactory('{!on_start}', {user: user});
 
     const retrieved = await retrieve(msg, source, botId, noder);
-    console.log(retrieved);
+    console.log('retrieved', retrieved);
   });
 });
