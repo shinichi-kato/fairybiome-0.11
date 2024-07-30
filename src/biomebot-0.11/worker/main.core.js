@@ -42,9 +42,9 @@ export const main = {
     main.proposalSpool = [];
     main.channel.onmessage = (event) => {
       const action = event.data;
-      console.log('main get', action);
       switch (action.type) {
         case 'propose': {
+          console.log('main get', action);
           main.proposalSpool.push({
             moduleName: action.moduleName,
             score: action.score,
@@ -98,7 +98,6 @@ export const main = {
     } else {
       startingModuleName = await botDxIo.decodeTag('{ON_START}', main.botId);
     }
-    console.log('main starting ', startingModuleName);
     main.channel.postMessage({
       type: 'start',
       moduleName: startingModuleName,

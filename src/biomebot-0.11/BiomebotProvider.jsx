@@ -395,7 +395,7 @@ export default function BiomebotProvider({
               }
             }
           };
-          newMain.postMessage({type: 'deploy', botId: botId});
+          newMain.postMessage({type: 'deploy', botId: botId, summon: summon});
           mainWorkersMapRef.current = {[botId]: newMain};
         })
         .catch((error) => {

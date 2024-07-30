@@ -32,7 +32,7 @@ export const part = {
       ),
     };
     part.noder = new Noder(botId);
-    part.retention = Number(botDxIo.pickTag('{RETENTION}', botId, 0.8));
+    part.retention = Number(await botDxIo.pickTag('{RETENTION}', botId, 0.8));
 
     await part.noder.loadTags();
 
@@ -84,7 +84,7 @@ export const part = {
     */
     // このパートをactivateする。
     part.activationLevel = Number(
-      botDxIo.readTag('{FORCED_ACTIVATION}', part.botId, 2)
+      await botDxIo.pickTag('{FORCED_ACTIVATION}', part.botId, 2)
     );
     const retrieved = await retrieve(
       {
@@ -133,7 +133,7 @@ export const part = {
       ・activationを行う
     */
     part.activationLevel = Number(
-      botDxIo.readTag('{ACTIVATION}', part.botId, 1.2)
+      await botDxIo.pickTag('{ACTIVATION}', part.botId, 1.2)
     );
     part.channel.postMessage({
       type: 'reply',

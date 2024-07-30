@@ -6,7 +6,7 @@
         "with {?SILENCE}",
         "avatar peace",
         "user {?SILENCE}",
-        "bot そうなんですか？\tもう少し詳しく教えてください",
+        "bot そうなんですか？\nもう少し詳しく教えてください",
         "",
         "user 嬉しかった",
         "cheer それは素敵です！"

@@ -54,6 +54,8 @@ import {
 } from 'firebase/firestore';
 import {botDxIo} from './BotDxIo';
 
+const RE_NON_INPUT_LINE = /^(#|with|bot|{)/;
+
 /**
  * firestore, indexedDB, graphqlを同期しindexedDBを最新にする
  * @param {Object} firestore firestoreオブジェクト
@@ -177,6 +179,25 @@ async function downloadFsScheme(firestore, botId) {
 export function graphqlToScheme(gqSnap, schemeName, botId) {
   // graphql上のデータにはbotIdがないため
   // 外から与える。schemeNameも外から与える。
+
+  const parseScript = (src) => {
+    // 簡易的パース
+    const script = [];
+    for (const line of src) {
+      if (line.match(RE_NON_INPUT_LINE)) {
+        script.push({text: line});
+        continue;
+      }
+      const v = line.split('\t');
+      if (v.length === 2) {
+        script.push({text: v[0], timestamp: new Date(Number(v[1]))});
+        continue;
+      }
+      script.push({text: line});
+    }
+    return script;
+  };
+
   const scheme = {
     updatedAt: new Date(0),
     botModules: [],
@@ -194,6 +215,7 @@ export function graphqlToScheme(gqSnap, schemeName, botId) {
         id: null,
         data: {
           ...s,
+          script: parseScript(s.script),
           updatedAt: u,
           moduleName: node.name,
           schemeName: schemeName,

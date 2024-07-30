@@ -5,7 +5,6 @@ retrieve
 */
 import {
   zeros,
-  matrix,
   divide,
   apply,
   concat,
@@ -111,7 +110,6 @@ export async function retrieve(message, source, botId, noder) {
   const tvsim = apply(source.timeMatrix, 1, (x) =>
     timeSimilarity(squeeze(x), tv)
   );
-
 
   // 重み付けスコア計算
   const scores = add(
@@ -229,7 +227,6 @@ async function generateCv(nodes, source, botId) {
       }
     }
   }
-  console.log(cv);
   return squeeze(cv);
 }
 
@@ -240,13 +237,13 @@ async function generateCv(nodes, source, botId) {
  */
 function generateTv(message) {
   const ts = message.timestamp;
-  return matrix([time2yearRad(ts), time2dateRad(ts)]);
+  return [time2yearRad(ts), time2dateRad(ts)];
 }
 
 /**
  * timestampの類似性を日付と時刻についてそれぞれ計算する
- * @param {Float} x radian
- * @param {Float} y radian
+ * @param {Float} x [radian,radian]
+ * @param {Float} y [radian,radian]
  * @return {Array} 類似度ベクトル
  */
 function timeSimilarity(x, y) {

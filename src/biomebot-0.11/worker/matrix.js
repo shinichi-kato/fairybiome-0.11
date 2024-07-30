@@ -118,7 +118,7 @@ export function matrixize(inScript, params, noder) {
   for (const block of inScript) {
     const data = [];
     for (const line of block) {
-      // line={head,text,timestamp}
+      // line=[head,text,timestamp]
       const nodes = noder.nodify(line[1]);
       data.push(nodes);
       for (const node of nodes) {
@@ -218,15 +218,16 @@ export function matrixize(inScript, params, noder) {
 
   -------------------------------------------------------  */
 
-  const timeMatrix = dotMultiply(ones(wvSize[0], 2), NaN);
-  i = 0;
+  let timeMatrix = dotMultiply(ones(wvSize[0], 2), NaN);
+  i=0;
   for (const block of inScript) {
     for (const line of block) {
       const ts = line[2];
-      subset(timeMatrix, index(i, [0, 1]), [
+      timeMatrix = subset(timeMatrix, index(i, [0, 1]), [
         time2yearRad(ts),
         time2dateRad(ts),
       ]);
+      i++;
     }
   }
 
@@ -346,9 +347,8 @@ export function preprocess(script, validAvatars, defaultAvatar) {
 
   const parseLine = (line) => {
     const [head, text] = line.text.split(' ', 2);
-    const [body, ts1] = text ? text.split('\t', 2) : ['', null];
-    const ts = line.timestamp || ts1;
-    return [head, body, ts && new Date(Number(ts))];
+    const ts = line.timestamp || null;
+    return [head || '', text || '', ts];
   };
 
   // headのbot指定
@@ -363,7 +363,7 @@ export function preprocess(script, validAvatars, defaultAvatar) {
 
   for (let i = 0, l = script.length; i < l; i++) {
     const parsed = parseLine(script[i]);
-    const [head, text] = parsed;
+    const [head, text, timestamp] = parsed;
 
     // コメント行は飛ばす
     if (head.startsWith('#')) {
@@ -374,9 +374,6 @@ export function preprocess(script, validAvatars, defaultAvatar) {
       withLine = text;
       continue;
     }
-
-    // with情報の付加
-    parsed[1] = parsed[1] + withLine;
 
     // 空行
     if (text.match(RE_BLANK_LINE)) {
@@ -399,7 +396,7 @@ export function preprocess(script, validAvatars, defaultAvatar) {
         isBotExists = false;
         isCueOrUserExists = false;
       }
-      block.push(parsed);
+      block.push([head, text + withLine, timestamp]);
       isCueOrUserExists = true;
       continue;
     }
@@ -410,7 +407,7 @@ export function preprocess(script, validAvatars, defaultAvatar) {
         // user行が連続する場合は{prompt}を挟む
         block.push(['peace', `{prompt}${withLine}`, null, null]);
       }
-      block.push(parsed);
+      block.push([head, text + withLine, timestamp]);
       prevKind = KIND_USER;
       isCueOrUserExists = true;
       continue;
@@ -425,7 +422,7 @@ export function preprocess(script, validAvatars, defaultAvatar) {
         const bl = block.length - 1;
         block[bl][1] += `\n${text}`;
       } else {
-        block.push(parsed);
+        block.push([head, text]);
       }
       isBotExists = true;
       prevKind = KIND_BOT;

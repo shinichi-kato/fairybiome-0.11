@@ -73,7 +73,7 @@ class BotDxIo extends Dbio {
       this.db.memory.where('botId').equals(module.fsId).delete();
 
       for (const line of module.data.script) {
-        const m = line.match(RE_TAG_LINE);
+        const m = line.text.match(RE_TAG_LINE);
         if (m) {
           await this.db.memory.put({
             botId: module.data.botId,
@@ -82,11 +82,9 @@ class BotDxIo extends Dbio {
             value: m[2].split(','),
           });
         } else {
-          const n = line.split('\t');
           await this.db.scripts.add({
             botModuleId: module.fsId,
-            text: n[0],
-            timestamp: n[1] ? new Date(n[1]) : null,
+            ...line
           });
         }
       }

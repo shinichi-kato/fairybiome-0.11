@@ -19,7 +19,7 @@ export default function Index() {
     <Container maxWidth='xs' disableGutters sx={{height: '100vh'}}>
       <AuthProvider firebase={firebase} firestore={firestore}>
         <EcosystemProvider firestore={firestore}>
-          <BiomebotProvider firestore={firestore}>
+          <BiomebotProvider firestore={firestore} summon>
             <ChatRoom firestore={firestore} />
           </BiomebotProvider>
         </EcosystemProvider>
