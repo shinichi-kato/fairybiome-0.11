@@ -57,6 +57,64 @@ import {botDxIo} from './BotDxIo';
 const RE_NON_INPUT_LINE = /^(#|with|bot|{)/;
 
 /**
+ *
+ * @param {object} gqSnap graphqlで取得したチャットボット情報
+ * @return {string} ランダムに選んだschemeName
+ */
+function randomlyChoosePCScheme(gqSnap) {
+  // gqSnapからrelativeDirectory(=schemeName)を集め、
+  // それらの中からNPCで始まるものを除き、
+  // 残りからランダムに一つを選んで返す。
+
+  const s = {};
+  gqSnap.forEach((n) => {
+    const dir = n.relativeDirectory;
+    console.log(n)
+    if (
+      !dir.startsWith('_') &&
+      !dir.startsWith('NPC') &&
+      n.name === 'main'
+    ) {
+      s[dir] = true;
+    }
+  });
+
+  const sk = Object.keys(s);
+  const i = Math.floor(Math.random() * sk.length);
+  return sk[i];
+}
+
+/**
+ * 起動するbotのbotIdを選定する
+ * @param {string} userId userのId
+ * @param {string} schemeName 起動を希望するschemeName
+ * @param {object} chatbotSnap graphqlのsnap
+ * @return {array} botId, targetSchemeName
+ */
+export async function findDefaultBotId(userId, schemeName, chatbotSnap) {
+  // (1)schemeNameが指定されていたらそれを使用し、ユーザのbotで
+  // schemeNameに該当するものがindexedDb上に存在していればそれを使う。
+  // (2)なければschemeNameのbotを新たに生成して使う。
+  // (3)schemeNameが未指定の場合、ユーザのbotが既存であればその中から
+  // ランダムに一つを選んで起動する。なければsnapから非NPCの
+  // schemeをランダムに一つ選んで起動する
+
+  let botId;
+  let targetSchemeName;
+
+  if (schemeName) {
+    botId = `${schemeName}${userId}`;
+    targetSchemeName = schemeName;
+  } else {
+    const snap = await botDxIo.findUserDxModule(userId);
+    targetSchemeName = snap.botId || randomlyChoosePCScheme(chatbotSnap);
+    botId = snap.botId || `${targetSchemeName}${userId}`;
+  }
+
+  return [botId, targetSchemeName];
+}
+
+/**
  * firestore, indexedDB, graphqlを同期しindexedDBを最新にする
  * @param {Object} firestore firestoreオブジェクト
  * @param {Object} graphqlSnap graphqlで取得したSnap
@@ -79,6 +137,7 @@ export async function syncCache(firestore, graphqlSnap, schemeName, botId) {
   const fsud = fsScheme.updatedAt;
   const dxud = dxScheme.updatedAt;
   const gqud = gqScheme.updatedAt;
+  console.log(gqScheme);
 
   if (fsud > dxud && fsud >= gqud) {
     // fsが最新の場合、fs->dxにコピーする

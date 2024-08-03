@@ -50,12 +50,11 @@ export class MessageFactory {
       if (bot) {
         this.kind = 'bot';
         this.avatarDir = bot.avatarDir;
-        this.ownerId = bot.botId;
+        this.ownerId = bot.ownerId;
         this.avatar = bot.avatar;
         this.displayName = bot.displayName;
-        this.backgroudColor = bot.backgroundColor;
+        this.backgroundColor = bot.backgroundColor;
         this.ecoState = ecosys || null;
-        this.text = data.text;
       } else if (user) {
         this.kind = 'user';
         this.avatarDir = user.avatarDir;

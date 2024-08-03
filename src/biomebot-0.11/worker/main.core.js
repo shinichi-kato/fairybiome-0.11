@@ -20,10 +20,10 @@ export const main = {
    * @param {Boolean} summon 初期に召喚された状態で始まるか
    * @return {Object} botRepr
    */
-  deploy: async ({botId, summon}) => {
+  deploy: async ({worker, botId, summon}) => {
     const m = await botDxIo.downloadDxModule(botId, 'main');
-    console.log(m);
     const d = m.data;
+    main.worker = worker;
     main.botId = botId;
     main.summon = summon;
     main.schemeName = d.schemeName;
@@ -50,6 +50,12 @@ export const main = {
             score: action.score,
             index: action.index,
           });
+          break;
+        }
+
+        case 'reply': {
+          main.reply(action);
+          break;
         }
       }
     };
@@ -139,7 +145,7 @@ export const main = {
       }
 
       main.channel.postMessage({
-        type: 'engage',
+        type: 'approve',
         ...hit,
       });
 
@@ -155,10 +161,15 @@ export const main = {
         avatar: action.avatar,
       },
     });
-    main.postMessage({type: 'reply', message: message.toObject()});
+    main.worker.postMessage({type: 'reply', message: message.toObject()});
   },
 
   pause: async (action) => {
     // タイマーを一時停止
   },
+
+  kill: () => {
+    main.channel.postMessage({type: 'kill'});
+    main.channel.close();
+  }
 };

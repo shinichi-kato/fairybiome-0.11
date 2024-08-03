@@ -33,16 +33,16 @@ main はsummonが指定されていた場合{ON_SUMMON}、そうでない場合{
 */
 import {part} from './part.core';
 
-onmessage = (event) => {
+self.onmessage = (event) => {
   const action = event.data;
   // console.log('partWorker recieved', action);
   switch (action.type) {
     case 'deploy': {
       part.deploy(action).then((result) => {
         if (result) {
-          postMessage({type: 'deployed', moduleName: part.moduleName});
+          self.postMessage({type: 'deployed', moduleName: part.moduleName});
         } else {
-          postMessage({type: 'deployError', moduleName: part.moduleName});
+          self.postMessage({type: 'deployError', moduleName: part.moduleName});
         }
       });
 
@@ -51,6 +51,7 @@ onmessage = (event) => {
 
     case 'kill': {
       part.kill();
+      self.close();
       break;
     }
 

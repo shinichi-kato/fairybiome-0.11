@@ -25,8 +25,9 @@ class BotDxIo extends Dbio {
     this.decodeTag = this.decodeTag.bind(this);
     this.readTag = this.readTag.bind(this);
     this.pickTag = this.pickTag.bind(this);
-    this.expand = this.expand.bind(this);
+    this._findTag = this._findTag.bind(this);
     this.writeTag = this.writeTag.bind(this);
+    this.expand = this.expand.bind(this);
     this.uploadDxWordToTagList = this.uploadDxWordToTagList.bind(this);
     this.downloadDxWordToTagList = this.downloadDxWordToTagList.bind(this);
   }
@@ -84,7 +85,7 @@ class BotDxIo extends Dbio {
         } else {
           await this.db.scripts.add({
             botModuleId: module.fsId,
-            ...line
+            ...line,
           });
         }
       }
@@ -133,6 +134,33 @@ class BotDxIo extends Dbio {
   }
 
   /**
+   * ユーザが所有する、schemeNameのmoduleデータがあればそのbotIdを返す
+   * @param {string} userId ユーザのid
+   * @param {string} schemeName scheme名。省略すると最初に見つかったものを返す
+   * @return {object} botId, schemeName
+   */
+  async findUserDxModule(userId, schemeName) {
+    const snaps = await this.db.botModules
+      .where(['data.botId', 'data.moduleName'])
+      .equals([`bot${userId}`, 'main'])
+      .toArray();
+
+    if (schemeName) {
+      for (const snap of snaps) {
+        if (snap.data.schemeName === schemeName) {
+          return {botId: snap.data.botId, schemeName: schemeName};
+        }
+      }
+      return null;
+    } else {
+      for (const snap of snaps) {
+        return {botId: snap.data.botId, schemeName: snap.data.schemeName};
+      }
+      return {botId: null, schemeName: null};
+    }
+  }
+
+  /**
    * moduleIdで指定したスクリプトを全て読み込む
    * @param {String} moduleId
    * @return {array} スクリプト[{text,timestamp}]形式
@@ -150,8 +178,15 @@ class BotDxIo extends Dbio {
    * @param {String} value 格納する値
    * @param {String} botId botのid
    * @param {String} moduleName モジュール名
+   * @param {boolean} overwrite 上書きする場合true
    */
-  async updateTagValue(key, value, botId, moduleName = 'main') {
+  async updateTagValue(
+    key,
+    value,
+    botId,
+    moduleName = 'main',
+    overwrite = false
+  ) {
     // db.memoryを更新
     // db.scriptsにはmemoryの内容はコピーされていない
     return await this.db.memory
@@ -160,7 +195,7 @@ class BotDxIo extends Dbio {
       .modify((item) => {
         return {
           ...item,
-          value: item.value.push(value),
+          value: overwrite ? [value] : item.value.push(value),
         };
       });
   }
@@ -259,7 +294,7 @@ class BotDxIo extends Dbio {
     //   .equals([botId, 'main', key])
     //   .first();
 
-    return await this.expand(key, botId, defaultValue, moduleName);
+    return await this._findTag(key, botId, defaultValue, moduleName);
   }
 
   /**
@@ -276,7 +311,7 @@ class BotDxIo extends Dbio {
     // partとmainで同じ名前の記憶があった場合partを優先する
     // タグに対応する値の中から一つをランダムに選ぶ。
 
-    const values = await this.expand(key, botId, null, moduleName);
+    const values = await this._findTag(key, botId, null, moduleName);
 
     if (!values) {
       return defaultValue;
@@ -359,7 +394,7 @@ class BotDxIo extends Dbio {
    * @param {string} moduleName 展開を要求したモジュールの名前
    * @return {String} 展開した文字列
    */
-  async expand(key, botId, defaultValue = null, moduleName = null) {
+  async _findTag(key, botId, defaultValue = null, moduleName = null) {
     let snap;
 
     if (moduleName) {
@@ -377,6 +412,51 @@ class BotDxIo extends Dbio {
 
       return snap?.value || defaultValue;
     }
+  }
+
+  /**
+   * db.memoryのtagを展開し、文字列にして返す
+   * @param {string} text 文字列
+   * @param {string} botId botId
+   * @param {string} moduleName モジュール名
+   * @return {String} 展開した文字列
+   */
+  expand(text, botId, moduleName) {
+    // text中のタグを再帰的に展開し、文字列に戻す
+
+    const db = this.db;
+
+    /**
+     * 再帰的なタグの展開
+     * @param {String} tag タグ文字列
+     * @return {String} 展開後の文字列
+     */
+    async function _expand(tag) {
+      let snap = await db.memory
+        .where(['botId', 'moduleName', 'key'])
+        .equals([botId, moduleName, tag])
+        .first();
+
+      if (!snap) {
+        snap = await db.memory
+          .where(['botId', 'moduleName', 'key'])
+          .equals([botId, 'main', tag])
+          .first();
+      }
+
+      if (!snap) {
+        return tag;
+      }
+
+      // 候補の中から一つを選ぶ
+      const value = snap.value[randomInt(snap.value.length)];
+
+      // タグが見つかったら再帰的に展開する
+      return replaceAsync(value, RE_EXPAND_TAG, _expand);
+    }
+
+    // タグが見つかったら展開する
+    return replaceAsync(text, RE_EXPAND_TAG, _expand);
   }
 }
 

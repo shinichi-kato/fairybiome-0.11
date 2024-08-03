@@ -44,11 +44,13 @@ export const part = {
         console.log(part.moduleName, 'get ', action);
         switch (action.type) {
           case 'start': {
+            // このパートをstart
             part.start(action).then();
             return;
           }
 
-          case 'engage': {
+          case 'approve': {
+            // このパートでrender
             part.render(action).then();
             return;
           }
@@ -57,12 +59,17 @@ export const part = {
 
       switch (action.type) {
         case 'input': {
+          // inputはすべてのpartが受け取る
           part.recieve(action).then();
           return;
         }
-        case 'engage': {
+        case 'approve': {
           // engageを受け取ったが自分ではない
           part.deactivate();
+          return;
+        }
+        case 'kill': {
+          part.channel.close();
           return;
         }
       }
@@ -135,10 +142,17 @@ export const part = {
     part.activationLevel = Number(
       await botDxIo.pickTag('{ACTIVATION}', part.botId, 1.2)
     );
+
+    const line = part.outScript[action.index];
+    // line = [head,text]
+    const text = await botDxIo.expand(line[1], part.botId, part.moduleName);
+    const avatar = line[0] !== 'bot' ? line[0] : part.defaultAvatar;
+
     part.channel.postMessage({
       type: 'reply',
-      text: '',
-      avatar: '',
+      moduleName: part.moduleName,
+      text: text,
+      avatar: avatar,
     });
   },
 

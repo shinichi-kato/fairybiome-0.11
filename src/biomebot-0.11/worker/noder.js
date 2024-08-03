@@ -64,7 +64,7 @@ import {TinySegmenter} from './tinysegmenter';
 
 import {botDxIo} from '../BotDxIo';
 
-const RE_TAG = /\{(\?|\?!|\+|-|)[a-zA-Z_][a-zA-Z_0-9]*\}/g;
+const RE_TAG = /\{(\?|\?!|!|\+|-|)[a-zA-Z_][a-zA-Z_0-9]*\}/g;
 const POST_PA = {
   が: '格助詞',
   を: '格助詞',

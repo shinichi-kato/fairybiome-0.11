@@ -103,7 +103,6 @@ export async function retrieve(message, source, botId, noder) {
   if (unknown.state === -1) {
     await botDxIo.writeTag('{UNKNOWN}', [unknown.word], botId);
   }
-
   // 類似度計算
   const wvdot = apply(source.wordMatrix, 1, (x) => dot(squeeze(x), wv));
   const cvdot = apply(source.condMatrix, 1, (x) => dot(squeeze(x), cv));

@@ -69,50 +69,12 @@ import {useStaticQuery, graphql} from 'gatsby';
 import {collection, addDoc, serverTimestamp} from 'firebase/firestore';
 
 import {AuthContext} from '../components/Auth/AuthProvider';
-import {syncCache} from './botio';
+import {syncCache, findDefaultBotId} from './botio';
 
 import MainWorker from './worker/main.worker';
 import PartWorker from './worker/part.worker';
 
 export const BiomebotContext = createContext();
-
-/**
- * @param {string} userId firestoreで生成されたauth.uid
- * @param {string} schemeName チャットボットの型式(relativeDir)
- * @return {string} botId
- */
-function generateBotId(userId, schemeName) {
-  // userIdをベースにbotIdを生成する。
-  // NPCボットはユーザに帰属しないのでschemeNameそのまま
-
-  if (schemeName.startsWith('NPC')) {
-    return schemeName;
-  } else {
-    return `${schemeName || 'bot'}${userId || ''}`;
-  }
-}
-
-/**
- *
- * @param {object} gqSnap graphqlで取得したチャットボット情報
- * @return {string} ランダムに選んだschemeName
- */
-function randomlyChoosePCScheme(gqSnap) {
-  // gqSnapからrelativeDirectory(=schemeName)を集め、
-  // それらの中からNPCで始まるものを除き、
-  // 残りからランダムに一つを選んで返す。
-
-  const s = [];
-  gqSnap.forEach((n) => {
-    const dir = n.relativeDirectory;
-    if (!dir.startsWith('_') && !dir.startsWith('NPC')) {
-      s.push(dir);
-    }
-  });
-
-  const i = Math.floor(Math.random() * s.length);
-  return s[i];
-}
 
 const biomebotQuery = graphql`
   query {
@@ -150,7 +112,11 @@ const biomebotQuery = graphql`
 const getChatbotSnap = (biomebotSnap) => {
   const snap = [];
   biomebotSnap.allJson.nodes.forEach((node) => {
-    if (node.parent.sourceInstanceName === 'botModules') {
+    const p = node.parent;
+    if (
+      p.sourceInstanceName === 'botModules' &&
+      p.relativeDirectory !== '_loading'
+    ) {
       snap.push(node.parent);
     }
   });
@@ -340,68 +306,75 @@ export default function BiomebotProvider({
 
   useEffect(() => {
     if (state.channel && auth.uid && firestore) {
-      // schemeNameが指定されたらそれを使う。なければランダムにPCを選ぶ
-      const chatbotSnap = getChatbotSnap(biomebotSnap);
-      const currentSchemeName =
-        schemeName || randomlyChoosePCScheme(chatbotSnap);
-      const botId = generateBotId(auth.uid, currentSchemeName);
+      (async () => {
+        const chatbotSnap = getChatbotSnap(biomebotSnap);
+        const [botId, targetSchemeName] = await findDefaultBotId(
+          auth.uid,
+          schemeName,
+          chatbotSnap
+        );
 
-      syncCache(
-        firestore,
-        {
-          chatbot: chatbotSnap,
-          token: getTokenSnap(biomebotSnap),
-        },
-        currentSchemeName,
-        botId,
-        auth.uid
-      )
-        .then((mods) => {
-          dispatch({type: 'setBotId', botId: botId, numOfModules: mods.length});
+        // データの同期
+        const mods = await syncCache(
+          firestore,
+          {
+            chatbot: chatbotSnap,
+            token: getTokenSnap(biomebotSnap),
+          },
+          targetSchemeName,
+          botId,
+          auth.uid
+        );
+        dispatch({type: 'setBotId', botId: botId, numOfModules: mods.length});
 
-          // はじめにmainModuleをdeployする。
-          const mi = mods.indexOf('main');
-          const newMain = new MainWorker();
-          newMain.onmessage = function (event) {
-            const action = event.data;
-            if (action.type === 'reply') {
-              writeLog(action.message);
-              return;
-            }
-            dispatch(action);
+        // はじめにmainModuleをdeployする。
+        const mi = mods.indexOf('main');
+        const newMain = new MainWorker();
+        newMain.onmessage = function (event) {
+          const action = event.data;
+          if (action.type === 'reply') {
+            writeLog(action.message);
+            return;
+          }
+          dispatch(action);
 
-            if (action.type === 'deployed') {
-              // mainModuleのdeployが完了したらPartをdeployする
-              // これによりmainのmemoryをpartが参照できる
-              const validAvatars = getValidBotAvatars(
-                biomebotSnap,
-                action.botRepr.avatarDir
-              );
-              for (let i = 0; i < mods.length; i++) {
-                if (i !== mi) {
-                  const newPart = new PartWorker();
-                  newPart.onmessage = function (event) {
-                    const action = event.data;
-                    dispatch(action);
-                  };
-                  newPart.postMessage({
-                    type: 'deploy',
-                    botId: botId,
-                    moduleName: mods[i],
-                    validAvatars: validAvatars,
-                  });
-                  partWorkersRef.current.push(newPart);
-                }
+          if (action.type === 'deployed') {
+            // mainModuleのdeployが完了したらPartをdeployする
+            // これによりmainのmemoryをpartが参照できる
+            const validAvatars = getValidBotAvatars(
+              biomebotSnap,
+              action.botRepr.avatarDir
+            );
+            for (let i = 0; i < mods.length; i++) {
+              if (i !== mi) {
+                const newPart = new PartWorker();
+                newPart.onmessage = function (event) {
+                  const action = event.data;
+                  dispatch(action);
+                };
+                newPart.postMessage({
+                  type: 'deploy',
+                  botId: botId,
+                  moduleName: mods[i],
+                  validAvatars: validAvatars,
+                });
+                partWorkersRef.current.push(newPart);
               }
             }
-          };
-          newMain.postMessage({type: 'deploy', botId: botId, summon: summon});
-          mainWorkersMapRef.current = {[botId]: newMain};
-        })
-        .catch((error) => {
-          console.error('error raised', error);
-        });
+          }
+        };
+        newMain.postMessage({type: 'deploy', botId: botId, summon: summon});
+        mainWorkersMapRef.current = {[botId]: newMain};
+      })();
     }
+
+    return () => {
+      for (const botId in mainWorkersMapRef.current) {
+        if (Object.hasOwn(mainWorkersMapRef.current, botId)) {
+          mainWorkersMapRef.current[botId].postMessage({type: 'kill'});
+        }
+      }
+    };
   }, [state.channel, auth.uid]);
 
   // -----------------------------------------------------------

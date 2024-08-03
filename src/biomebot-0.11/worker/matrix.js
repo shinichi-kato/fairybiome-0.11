@@ -275,7 +275,7 @@ export function tee(script) {
       i++;
     }
     inScript.push([...inBlock]);
-    outScript.push([...outBlock]);
+    outScript.push(...outBlock);
     inBlock = [];
     outBlock = [];
     if (inBlock.length !== outBlock.length) {

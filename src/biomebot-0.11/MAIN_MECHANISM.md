@@ -16,17 +16,41 @@ mainはチャットボットの動作全体を統括する。
 1 main: 
 
 ## run
-1 main: タイマーを起動。以降ユーザやecosystemから入力を受け取ったら
-        {type:input}としてブロードキャスト
-↓
-2 main: {ON_START}から選んだpartに対して{type: start}をブロードキャスト
-↓
-3 part: {type:start}を受け取ったらアクティベートして{!on_start}をretrieve、
-        retrieveした内容で{type:propose}をブロードキャスト
-↓
-4 main: タイマーで決めた時間全partからのproposeを待機した後一つを選んで
-      {type: engage}発行
-↓
-5 part: {type:engage}を受け取ったら出力文字列を生成して{type:render} 
-↓
-6 main: {type:render}を受け取ったらチャットにpost
+
+```mermaid
+sequenceDiagram
+title Run
+participant provider
+participant main
+participant part1 as target part
+participant part0 as other part
+provider-) main: run
+Note over main: pick {ON_SELECT}
+main-)+part1: broadcast start
+Note right of part1: retrieve {!on_start}
+part1--)-main: broadcast propose
+Note over main : integrate
+main-)+part1: broadcast approve
+Note right of part1: render
+part1--)-main: broadcast reply
+main--)provider: reply
+
+provider-)main: input
+main-)+part0: broadcast input
+main-)+part1: broadcast input
+Note right of part1: retrieve
+Note right of part0: retrieve
+part1--)-main: broadcast propose
+part0--)-main: broadcast propose
+activate main
+Note over main: integrate
+
+main-)part0: breoadcast approve
+Note right of part0: inactivate
+main-)+part1: broadcast approve
+Note right of part1: render
+
+part1--)-main: broadcast reply
+main--)provider: reply
+
+```

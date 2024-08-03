@@ -35,13 +35,13 @@ main はsummonが指定されていた場合{ON_SUMMON}、そうでない場合{
 */
 import {main} from './main.core';
 
-onmessage = (event) => {
+self.onmessage = (event) => {
   const action = event.data;
   // console.log('mainWorker recieved', action);
   switch (action.type) {
     case 'deploy': {
-      main.deploy(action).then((result) => {
-        postMessage({
+      main.deploy({...action, worker: self}).then((result) => {
+        self.postMessage({
           type: 'deployed',
           startingPart: result.startingPart,
           botRepr: result.botRepr,
@@ -62,6 +62,7 @@ onmessage = (event) => {
 
     case 'kill': {
       main.kill();
+      self.close();
       break;
     }
 
