@@ -164,6 +164,9 @@ export function time2yearRad(t) {
   if (!t) {
     return NaN;
   }
+  if (typeof t === 'object' && 'seconds' in t) {
+    t = new Date(t.seconds*1000);
+  }
 
   const ty = t.toLocaleDateString().slice(0, 4);
 
@@ -184,6 +187,9 @@ export function time2dateRad(t) {
 
   if (!t) {
     return NaN;
+  }
+  if (typeof t === 'object' && 'seconds' in t) {
+    t = new Date(t.seconds*1000);
   }
 
   const ts = t.toLocaleTimeString('jp');

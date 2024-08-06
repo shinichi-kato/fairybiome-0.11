@@ -243,6 +243,19 @@ function reducer(state, action) {
       };
     }
 
+    case 'reply': {
+      const m = action.message;
+      return {
+        ...state,
+        botRepr: {
+          ...state.botRepr,
+          displayName: m.displayName,
+          avatarDir: m.avatarDir,
+          avatar: m.avatar,
+        },
+      };
+    }
+
     default:
       throw new Error(`invalid action ${action.type}`);
   }
@@ -332,11 +345,11 @@ export default function BiomebotProvider({
         const newMain = new MainWorker();
         newMain.onmessage = function (event) {
           const action = event.data;
+          dispatch(action);
           if (action.type === 'reply') {
             writeLog(action.message);
             return;
           }
-          dispatch(action);
 
           if (action.type === 'deployed') {
             // mainModuleのdeployが完了したらPartをdeployする

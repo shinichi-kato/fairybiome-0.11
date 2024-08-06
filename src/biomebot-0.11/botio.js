@@ -42,12 +42,25 @@
     ]
   }
 
+  ## script
+  graphql上ではscriptはschemeの中に記述されるが、firestore上では
+  botModules document
+    └script collection
+        ├origin
+        └page0
+  という構成とする。originはschemeに格納された内容、page0は
+  追記された内容とする。またoriginではschemeのスクリプトを
+  そのままコピーするため、memoryになるべき内容も含む。
+
+  ## memory
+
 */
 
 import {
   doc,
   collection,
   getDocs,
+  getDoc,
   writeBatch,
   query,
   where,
@@ -69,12 +82,7 @@ function randomlyChoosePCScheme(gqSnap) {
   const s = {};
   gqSnap.forEach((n) => {
     const dir = n.relativeDirectory;
-    console.log(n)
-    if (
-      !dir.startsWith('_') &&
-      !dir.startsWith('NPC') &&
-      n.name === 'main'
-    ) {
+    if (!dir.startsWith('_') && !dir.startsWith('NPC') && n.name === 'main') {
       s[dir] = true;
     }
   });
@@ -137,22 +145,19 @@ export async function syncCache(firestore, graphqlSnap, schemeName, botId) {
   const fsud = fsScheme.updatedAt;
   const dxud = dxScheme.updatedAt;
   const gqud = gqScheme.updatedAt;
-  console.log(gqScheme);
 
-  if (fsud > dxud && fsud >= gqud) {
-    // fsが最新の場合、fs->dxにコピーする
-    await botDxIo.uploadDxScheme(fsScheme, botId);
-  } else if (dxud > fsud && dxud >= gqud) {
-    // dxが最新の場合、dx->fsにコピーする
-    await uploadFsScheme(firestore, dxScheme);
+  if (fsud < gqud && dxud < gqud) {
+    // gqが最新：初期化
+    await uploadFsScheme(firestore, gqScheme);
+    // fsIdをdxに渡すため最新情報をfsからダウンロード
+    const fss = await downloadFsScheme(firestore, botId);
+    await botDxIo.uploadDxScheme(fss, botId);
   } else {
-    if (gqud > fsud) {
-      // gqが最新の場合、gq->fsにコピーする
-      await uploadFsScheme(firestore, gqScheme);
-    }
-    if (gqud > dxud) {
-      // gqが最新の場合、gq->dxにコピーする
-      await botDxIo.uploadDxScheme(gqScheme);
+    // gqが最新ではない→fsとdxの間で同期
+    if (fsud > dxud) {
+      await botDxIo.uploadDxScheme(fsScheme, botId);
+    } else if (dxud > fsud) {
+      await uploadFsScheme(firestore, dxScheme);
     }
   }
 
@@ -180,7 +185,22 @@ async function uploadFsScheme(firestore, scheme) {
         docRef = doc(collection(firestore, 'botModules'));
         main.fsId = docRef.id;
       }
-      batch.set(docRef, main.data);
+      batch.set(docRef, {
+        ...main.data,
+        script: 'on scripts/origin',
+        memory: 'on scripts/memory',
+      });
+
+      // scriptはscriptサブコレクションの'origin'というdocに
+      // 格納。ユーザによる追記とdocを分ける
+      if ('script' in main.data) {
+        const scriptRef = doc(docRef, 'scripts', 'origin');
+        batch.set(scriptRef, {script: main.data.script});
+      }
+      if ('memory' in main.data && main.data.memory) {
+        const memoryRef = doc(docRef, 'scripts', 'memory');
+        batch.set(memoryRef, main.data.memory);
+      }
       break;
     }
   }
@@ -194,7 +214,21 @@ async function uploadFsScheme(firestore, scheme) {
         docRef = doc(collection(firestore, 'botModules'));
         module.fsId = docRef.id;
       }
-      batch.set(docRef, {...module.data, mainFsId: main.fsId});
+      batch.set(docRef, {
+        ...module.data,
+        memory: 'on scripts/memory',
+        script: 'on scripts/origin',
+        mainFsId: main.fsId,
+      });
+
+      if ('script' in module.data) {
+        const scriptRef = doc(docRef, 'scripts', 'origin');
+        batch.set(scriptRef, {script: module.data.script});
+      }
+      if ('memory' in module.data && module.data.memory) {
+        const memoryRef = doc(docRef, 'scripts', 'memory');
+        batch.set(memoryRef, module.data.memory);
+      }
     }
   }
   await batch.commit();
@@ -216,15 +250,26 @@ async function downloadFsScheme(firestore, botId) {
   const q = query(botModulesRef, where('botId', '==', botId));
   const snap = await getDocs(q);
 
-  snap.forEach((doc) => {
-    const data = doc.data();
-    scheme.botModules.push({fsId: doc.id, data: data});
-    const ts = data.updatedAt.toDate();
+  for (const d of snap.docs) {
+    const data = d.data();
+    const scriptRef = doc(botModulesRef, d.id, 'scripts', 'origin');
+    const memoryRef = doc(botModulesRef, d.id, 'scripts', 'memory');
+    const sq = await getDoc(scriptRef);
+    const mq = await getDoc(memoryRef);
+
+    scheme.botModules.push({
+      fsId: d.id,
+      data: {
+        ...data,
+        ...sq.data(),
+        memory: mq.data(),
+      },
+    });
+    const ts = new Date(data.updatedAt.seconds * 1000);
     if (scheme.updatedAt < ts) {
       scheme.updatedAt = ts;
     }
-  });
-
+  }
   return scheme;
 }
 

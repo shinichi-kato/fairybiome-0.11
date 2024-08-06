@@ -66,7 +66,9 @@ export const main = {
     if (main.botName === 'undefined') {
       main.botName = await botDxIo.decodeTag('{BOT_NAME_GENERATOR}', botId);
 
-      await botDxIo.updateTagValue('{BOT_NAME}', main.botName, botId);
+      await botDxIo.updateTagValue('{BOT_NAME}', main.botName, botId, {
+        overwrite: true,
+      });
     }
 
     // sessionタグの削除
@@ -124,6 +126,7 @@ export const main = {
 
   recieve: async (action) => {
     // ユーザや環境からのメッセージを受取りパートに送る
+    main.currentInput={...action.message};
     main.channel.postMessage({type: 'input', message: action.message});
   },
 
@@ -171,5 +174,5 @@ export const main = {
   kill: () => {
     main.channel.postMessage({type: 'kill'});
     main.channel.close();
-  }
+  },
 };

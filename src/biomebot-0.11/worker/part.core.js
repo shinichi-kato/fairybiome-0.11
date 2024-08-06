@@ -1,7 +1,11 @@
+import replaceAsync from 'string-replace-async';
+
 import {botDxIo} from '../BotDxIo';
 import {Noder} from './noder';
 import {retrieve} from './retrieve';
 import * as matrix from './matrix';
+
+const RE_COND_TAG = /\{([+-])([a-zA-Z_][a-zA-Z_0-9]*)\}/g;
 
 export const part = {
   botId: null,
@@ -117,12 +121,15 @@ export const part = {
       受取り、
       ・返答候補のスコア情報を返す。
     */
-    const retr = await retrieve(
-      action.message,
-      part.source,
-      part.botId,
-      part.noder
-    );
+    // やり取りを辞書化するためinputを保持しておく
+    const m = action.message;
+    part.currentInput = {
+      text: m.text,
+      displayName: m.displayName,
+    };
+
+    const retr = await retrieve(m, part.source, part.botId, part.noder);
+
     part.channel.postMessage({
       type: 'propose',
       moduleName: part.moduleName,
@@ -145,15 +152,33 @@ export const part = {
 
     const line = part.outScript[action.index];
     // line = [head,text]
-    const text = await botDxIo.expand(line[1], part.botId, part.moduleName);
-    const avatar = line[0] !== 'bot' ? line[0] : part.defaultAvatar;
+    let text = await botDxIo.expand(line[1], part.botId, part.moduleName);
 
+    // 条件タグの書き込み
+    text = await replaceAsync(text, RE_COND_TAG, async (m, mode, tag) => {
+      if (mode === '+') {
+        await botDxIo.writeTag(`{${tag}}`, 'True', part.botId, part.moduleName);
+      } else if (mode === '-') {
+        await botDxIo.deleteTag(tag, part.botId, part.moduleName);
+      }
+      return '';
+    });
+
+    // ユーザ名を復号化
+    text = text.replaceAll('{user}', part.currentInput.displayName);
+
+    const avatar = line[0] !== 'bot' ? line[0] : part.defaultAvatar;
     part.channel.postMessage({
       type: 'reply',
       moduleName: part.moduleName,
       text: text,
       avatar: avatar,
     });
+
+    // 採用されたcurrentInputとreplyの組を辞書に書き込む
+    // 暫定的にpage0のみ
+    // 人称を逆転させる？
+    // ここからコーディング
   },
 
   deactivate: () => {
