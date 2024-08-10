@@ -29,6 +29,7 @@ Note over main: pick {ON_SELECT}
 main-)+part1: broadcast start
 Note right of part1: retrieve {!on_start}
 part1--)-main: broadcast propose
+main--)provider: working
 Note over main : integrate
 main-)+part1: broadcast approve
 Note right of part1: render
@@ -41,7 +42,9 @@ main-)+part1: broadcast input
 Note right of part1: retrieve
 Note right of part0: retrieve
 part1--)-main: broadcast propose
+main--)provider: working
 part0--)-main: broadcast propose
+main--)provider: working
 activate main
 Note over main: integrate
 
@@ -55,5 +58,6 @@ main--)provider: reply
 
 ```
 
-## render
+## TODO
+integrate前にpartからの返答が始まったら「反応中」という応答を返す
 

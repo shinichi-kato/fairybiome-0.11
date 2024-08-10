@@ -147,7 +147,7 @@ function SystemMessage({message}) {
  * @param {uid} userのId
  * @return {JSX.Elements} LogViewコンポーネント
  */
-export default function LogView({firestore, uid}) {
+export default function LogView({firestore, uid, botRepr}) {
   const [log, setLog] = useState([]);
   const scrollBottomRef = useRef();
 
@@ -214,6 +214,7 @@ export default function LogView({firestore, uid}) {
   return (
     <ThemeProvider theme={customTheme}>
       <Box display='flex' flexDirection='column'>
+        {botRepr?.replyingCount !== 0 && '...'}
         {log.map((message) => {
           const id = message.ownerId;
           if (!id) {

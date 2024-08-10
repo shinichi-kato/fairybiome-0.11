@@ -107,6 +107,11 @@ export const part = {
       part.noder
     );
 
+    part.currentInput = {
+      text: '',
+      displayName: action.user.displayName,
+    };
+
     part.channel.postMessage({
       type: 'propose',
       moduleName: part.moduleName,
@@ -165,6 +170,7 @@ export const part = {
     });
 
     // ユーザ名を復号化
+    console.log(part.currentInput);
     text = text.replaceAll('{user}', part.currentInput.displayName);
 
     const avatar = line[0] !== 'bot' ? line[0] : part.defaultAvatar;
@@ -177,7 +183,7 @@ export const part = {
 
     // 採用されたcurrentInputとreplyの組を辞書に書き込む
     // 暫定的にpage0のみ
-    // 人称を逆転させる？
+    // {user}と{bot}を入れ替える？
     // ここからコーディング
   },
 

@@ -151,6 +151,7 @@ const initialState = {
     avatarDir: 'default',
     avatar: 'null',
     backrgoundColor: '#cccccc',
+    replyingCount: 0,
     botId: null,
   },
 
@@ -185,6 +186,7 @@ function reducer(state, action) {
           avatar: 'emerging',
           backrgoundColor: '#cccccc',
           botId: action.botId,
+          replyingCount: 0,
         },
         channel: state.channel,
       };
@@ -243,15 +245,29 @@ function reducer(state, action) {
       };
     }
 
+    case 'replying': {
+      const br = state.botRepr;
+      return {
+        ...state,
+        botState: 'replying',
+        botRepr: {
+          ...br,
+          replyingCount: ((br.replyingCount + 1) % 3) + 1,
+        },
+      };
+    }
+
     case 'reply': {
       const m = action.message;
       return {
         ...state,
+        botState: 'run',
         botRepr: {
           ...state.botRepr,
           displayName: m.displayName,
           avatarDir: m.avatarDir,
           avatar: m.avatar,
+          replyingCount: 0,
         },
       };
     }
@@ -346,32 +362,34 @@ export default function BiomebotProvider({
         newMain.onmessage = function (event) {
           const action = event.data;
           dispatch(action);
-          if (action.type === 'reply') {
-            writeLog(action.message);
-            return;
-          }
+          switch (action.type) {
+            case 'reply': {
+              writeLog(action.message);
+              return;
+            }
 
-          if (action.type === 'deployed') {
-            // mainModuleのdeployが完了したらPartをdeployする
-            // これによりmainのmemoryをpartが参照できる
-            const validAvatars = getValidBotAvatars(
-              biomebotSnap,
-              action.botRepr.avatarDir
-            );
-            for (let i = 0; i < mods.length; i++) {
-              if (i !== mi) {
-                const newPart = new PartWorker();
-                newPart.onmessage = function (event) {
-                  const action = event.data;
-                  dispatch(action);
-                };
-                newPart.postMessage({
-                  type: 'deploy',
-                  botId: botId,
-                  moduleName: mods[i],
-                  validAvatars: validAvatars,
-                });
-                partWorkersRef.current.push(newPart);
+            case 'deployed': {
+              // mainModuleのdeployが完了したらPartをdeployする
+              // これによりmainのmemoryをpartが参照できる
+              const validAvatars = getValidBotAvatars(
+                biomebotSnap,
+                action.botRepr.avatarDir
+              );
+              for (let i = 0; i < mods.length; i++) {
+                if (i !== mi) {
+                  const newPart = new PartWorker();
+                  newPart.onmessage = function (event) {
+                    const action = event.data;
+                    dispatch(action);
+                  };
+                  newPart.postMessage({
+                    type: 'deploy',
+                    botId: botId,
+                    moduleName: mods[i],
+                    validAvatars: validAvatars,
+                  });
+                  partWorkersRef.current.push(newPart);
+                }
               }
             }
           }
@@ -397,8 +415,11 @@ export default function BiomebotProvider({
     if (state.botState === 'deployed') {
       mainWorkersMapRef.current[state.botId].postMessage({
         type: 'run',
+        user: auth.user
       });
-      dispatch({type: 'run'});
+      dispatch({
+        type: 'run',
+      });
     }
   }, [state.botId, state.botState]);
 

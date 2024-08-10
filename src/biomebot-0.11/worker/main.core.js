@@ -37,6 +37,9 @@ export const main = {
       '{RESPONSE_INTERVALS}',
       botId
     );
+    main.responsePrecision = Number(
+      await botDxIo.pickTag('{RESPONSE_PRECISION}', botId, 0.3)
+    );
 
     // メッセージスプールの設定
     main.proposalSpool = [];
@@ -45,11 +48,16 @@ export const main = {
       switch (action.type) {
         case 'propose': {
           console.log('main get', action);
-          main.proposalSpool.push({
-            moduleName: action.moduleName,
-            score: action.score,
-            index: action.index,
-          });
+          if (action.score > main.responsePrecision) {
+            main.proposalSpool.push({
+              moduleName: action.moduleName,
+              score: action.score,
+              index: action.index,
+            });
+
+            // biomebotに「反応中」を通知
+            main.worker.postMessage({type: 'replying'});
+          }
           break;
         }
 
@@ -109,6 +117,7 @@ export const main = {
     main.channel.postMessage({
       type: 'start',
       moduleName: startingModuleName,
+      user: action.user
     });
   },
 
@@ -126,7 +135,7 @@ export const main = {
 
   recieve: async (action) => {
     // ユーザや環境からのメッセージを受取りパートに送る
-    main.currentInput={...action.message};
+    main.currentInput = {...action.message};
     main.channel.postMessage({type: 'input', message: action.message});
   },
 

@@ -66,7 +66,7 @@ export default function ChatRoom({firestore}) {
             flexGrow: 1,
           }}
         >
-          <LogView firestore={firestore} uid={auth.uid} />
+          <LogView firestore={firestore} uid={auth.uid} botRepr={bot.botRepr}/>
         </Box>
         <Box
           sx={{

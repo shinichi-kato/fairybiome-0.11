@@ -254,5 +254,7 @@ bot ボットの返答({AVATAR}が表示される)\t{timestamp}\t
 peace ボットの返答(先頭が有効なavatar名の場合そのavatarが表示される)
 ```
 
+## TODO
+* timeMatrixがきちんと動作してるか確認
 
 
