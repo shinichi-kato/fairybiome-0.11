@@ -5,6 +5,7 @@ import {Dbio} from '../dbio';
 
 const RE_TAG_LINE = /^(\{[a-zA-Z0-9_]+\}) (.+)$/;
 const RE_EXPAND_TAG = /^\{([a-zA-Z_][a-zA-Z0-9_]*)\}/;
+const RE_WORD_TAG = /\{([0-9]+)\}/;
 const LI_LOWERCASE = 'abcdefghijklmnopqrstuvwxyz'.split('');
 
 /**
@@ -19,6 +20,7 @@ class BotDxIo extends Dbio {
     this.getModuleNames = this.getModuleNames.bind(this);
     this.uploadDxScheme = this.uploadDxScheme.bind(this);
     this.downloadDxScheme = this.downloadDxScheme.bind(this);
+    this.touchDxScheme = this.touchDxScheme.bind(this);
     this.downloadDxModule = this.downloadDxModule.bind(this);
     this.downloadDxScript = this.downloadDxScript.bind(this);
     this.downloadDxMemory = this.downloadDxMemory.bind(this);
@@ -30,6 +32,8 @@ class BotDxIo extends Dbio {
     this.writeTag = this.writeTag.bind(this);
     this.deleteTag = this.deleteTag.bind(this);
     this.expand = this.expand.bind(this);
+    this.expandWordTag = this.expandWordTag.bind(this);
+    this.memorizeLine = this.memorizeLine.bind(this);
     this.uploadDxWordToTagList = this.uploadDxWordToTagList.bind(this);
     this.downloadDxWordToTagList = this.downloadDxWordToTagList.bind(this);
   }
@@ -72,7 +76,7 @@ class BotDxIo extends Dbio {
       // scriptの内容はdb.scriptに記憶。変更点の追跡が大変なので
       // 一旦削除し上書きする。
       // scriptの内容のうち、タグはmemoryに記憶する
-      this.db.scripts.where('botModuleId').equals(module.fsId).delete();
+      this.db.scripts.where({botModuleId: module.fsId, doc: 'origin'}).delete();
       this.db.memory.where('botId').equals(module.fsId).delete();
 
       for (const line of module.data.script) {
@@ -94,6 +98,20 @@ class BotDxIo extends Dbio {
         }
       }
     }
+  }
+
+  /**
+   * 指定されたmoduleの日付を現時刻に設定
+   * @param {*} botId
+   * @param {*} moduleName
+   */
+  async touchDxScheme(botId, moduleName) {
+    await this.db.botModules
+      .where('[data.botId+data.moduleName]')
+      .equals([botId, moduleName])
+      .modify((item) => {
+        item.data.updatedAt = new Date();
+      });
   }
 
   /**
@@ -120,7 +138,6 @@ class BotDxIo extends Dbio {
         // memoryの取得
         snap.data.memory = await this.downloadDxMemory(botId, snap.moduleName);
       }
-      console.log(snap);
       scheme.botModules.push(snap);
       const ts = new Date(snap.data.updatedAt.seconds * 1000);
       if (scheme.updatedAt < ts) {
@@ -389,7 +406,7 @@ class BotDxIo extends Dbio {
       const node = await this.db.wordTag.where('word').equals(w).first();
       if (node) {
         console.warning('wordTag duplicated, overwrited', node);
-        await this.db.wordTag.update(node.id, {word: w});
+        await this.db.wordTag.update(node.id, {word: w, tag: item.tag});
       } else {
         await this.db.wordTag.add({
           tag: item.tag,
@@ -482,6 +499,65 @@ class BotDxIo extends Dbio {
 
     // タグが見つかったら展開する
     return replaceAsync(text, RE_EXPAND_TAG, _expand);
+  }
+
+  /**
+   * 文字列中のwordTag ({0000})を文字列に戻す
+   * @param {string} text outScriptの文字列
+   * @return {string} 返答文字列
+   */
+  expandWordTag(text) {
+    const db = this.db.wordTag;
+
+    /**
+     * 再帰的なタグの展開
+     * @param {String} tag タグ文字列
+     * @return {String} 展開後の文字列
+     */
+    async function _expand(tag) {
+      const snap = await db.wordTag.where('tag').equals(tag).first();
+
+      if (!snap) {
+        return tag;
+      }
+
+      // 候補の中から一つを選ぶ
+      const value = snap.value[randomInt(snap.value.length)];
+
+      // タグが見つかったら再帰的に展開する
+      return replaceAsync(value, RE_WORD_TAG, _expand);
+    }
+
+    // タグが見つかったら展開する
+    return replaceAsync(text, RE_WORD_TAG, _expand);
+  }
+
+  /**
+   * 入出力をパート辞書に追記
+   * @param {Object} latestOutput {avatar,text,displayName}
+   * @param {Object} latestInput {avatar,text,displayName}
+   * @param {String} moduleId モジュールId
+   */
+  async memorizeLine(latestOutput, latestInput, moduleId) {
+    /* latestOutputは一つ前のチャットボットの発言で、
+    latestInputはそれに対するユーザの返答とみなす。
+    そのペアを発言者を入れ替えて記憶する。
+    */
+    const ts = new Date().valueOf();
+
+    // {user}と{bot}の入れ替えは
+    // 未実装
+    await this.db.scripts.add({
+      botModuleId: moduleId,
+      head: 'user',
+      text: `${latestOutput.text}\t${ts}`,
+      doc: 'page0',
+    });
+    await this.db.scripts.add({
+      botModuleId: moduleId,
+      head: 'bot',
+      text: `${latestInput.text}`,
+    });
   }
 }
 

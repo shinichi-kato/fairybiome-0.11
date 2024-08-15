@@ -3,7 +3,7 @@ import {describe, expect, it} from 'vitest';
 import {botDxIo} from '../BotDxIo';
 
 describe('bot i/o', () => {
-  const now = new Date();
+  const now = new Date(2023,2,2);
   const scheme = {
     updatedAt: now,
     botModules: [
@@ -85,4 +85,15 @@ describe('bot i/o', () => {
     console.log(result);
     expect(result).toBe('リンゴです');
   });
+
+  it('touchDxScheme', async () => {
+    await botDxIo.touchDxScheme(
+      scheme.data.botId,
+      scheme.data.moduleName
+    );
+    await botDxIo.
+    console.log(result);
+    expect(result).toBe('リンゴです');
+  });
+
 });

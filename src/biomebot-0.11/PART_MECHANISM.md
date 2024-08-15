@@ -76,7 +76,13 @@ token     {I}\tは {animal}\tを    0343     \t 。
 | {SYSTEM}   | 大文字   | システム用               |
 | {Persist}  | 頭大文字 | ユーザ用の永続化記憶     |
 | {session}  | 小文字   | ユーザ用の永続しない記憶 |
-| {0000}     | 数字     | ICI(使用禁止)            |
+| {0000}     | 数字     | ICI(ユーザは使用禁止)    |
+
+{SYSTEM}タグはシステムが必要とし辞書で定義することが必須の記憶で、
+通常この記憶は上書きされず、消えることもない。またtoken上でも同じ
+タグがあり、入力文字列がシステムタグであることを認識するのに利用
+する。またシステムタグはチャットボットの語尾や人称を表現するのにも
+もちいる。
 
 出力文字列中に{greeting} のように記述されたタグは、定義された{greeting}の内容に再帰的に展開される。加えて展開後の内容が記憶されて以降{greeting}を展開する場合に記憶したものが使われる。つまりランダム選択が起きなくなる。{-greeting}のようにマイナス記号を先頭に付加すると記憶が破棄され、{-greeting}自体は展開結果が空文字列になる。{+greeting}とした場合は以前記憶したものを無視してランダム選択をやり直す。
 {greeting}に展開するべき候補が定義されていない場合は展開結果が空文字になり、空文字であることが記憶される。
@@ -185,6 +191,71 @@ bot {=USER}だね。
 
 {SLOT}モードでは「それは」「ええと」などの前置きと「だよ。」のように意味のない語尾を含まない残りすべてをSLOTに割当てる。
 SLOTへの割当後、{=USER.Name}のようにすることで知識に加えられる。
+
+## 会話内容の記憶
+bot「こんにちは」
+user「今日は暑かったね」
+のようなやり取りはbotが記憶して自分の発言に再利用する。上述の例の場合は
+挨拶を行うパートに記憶されるのが適切で、アクティブ状態になっている
+パートがそれを記憶する。機序としてはactivation時点で出力を記憶する。
+その次のユーザ入力も記憶しておき、partの発言が確定した(activationLevelが
+0より大)ところで出力と入力の組み合わせを記憶する。
+
+```mermaid
+sequenceDiagram
+title online learning
+participant provider
+participant main
+participant part
+provider -) main: input
+main -) part: brodcast input
+part --) main: broadcast propose
+main -) part: approve
+Note right of part: activation
+Note right of part: memory output
+part --) main: render
+main --) provider: reply
+
+provider -) main: input
+main -) part: brodcast input
+Note right of part: memory input
+part --) main: broadcast propose
+main -) part: approve
+Note right of part: learn if active
+Note right of part: memory output
+part --) main: render
+main --) provider: reply
+
+provider -) main: input
+main -) part: not approved
+Note right of part: deactivate
+```
+
+この記憶はscriptsデータベースを利用する。各記憶は「doc」という属性があり、
+jsonの元データにあるoriginと、新たに獲得した0,1,...に分ける。
+ページに分けるのは.jsonが更新されたときにorigin部分だけ書き換えられるように
+する目的で、また獲得したデータがfirestoreのdocの最大サイズを超えた場合に
+切替可能にするためである。が、最大サイズ対策は当面実装しない。
+
+## 出力文字列のレンダリング
+
+出力文字列はoutScriptにテキストとして格納されている。
+だがこのテキストは入力文字列と組み合わせて一種のテンプレートとして
+用い、例えば「動物園」という言葉は「水族館」でも置き換え可能にしたい。
+
+user ねえ、今日は動物園に行ったんだよ
+bot そうなんだ。動物園どうだった？
+↓
+user ねえ、今日水族館行ってきた！
+bot 水族館は面白かった？
+
+そのため入力文字列では置き換え可能な概念をwordTag化する。
+入力文字列にあるwordTagが含まれ、回答として採用された場合に
+出現したwordTagと元になった文字列の組み合わせをmemoryに記憶する。
+
+次にoutScriptもnodes列に変換し、そこにwordTagが含まれていたら
+文字列に戻す。
+
 
 
 

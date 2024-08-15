@@ -6,6 +6,7 @@ import {retrieve} from './retrieve';
 import * as matrix from './matrix';
 
 const RE_COND_TAG = /\{([+-])([a-zA-Z_][a-zA-Z_0-9]*)\}/g;
+const RE_WORD_TAG = /\{([0-9]+)\}\t?(.+)?/;
 
 export const part = {
   botId: null,
@@ -14,6 +15,9 @@ export const part = {
   moduleName: null,
   channel: new BroadcastChannel('biomebot'),
   activationLevel: 0,
+  source: {},
+  latestInput: {avatar: '', text: '', displayName: ''},
+  latestOutput: {avatar: '', text: '', displayName: ''},
 
   deploy: async (action) => {
     const {botId, moduleName, validAvatars} = action;
@@ -45,7 +49,6 @@ export const part = {
     part.channel.onmessage = (event) => {
       const action = event.data;
       if (action.moduleName === part.moduleName) {
-        console.log(part.moduleName, 'get ', action);
         switch (action.type) {
           case 'start': {
             // このパートをstart
@@ -107,7 +110,8 @@ export const part = {
       part.noder
     );
 
-    part.currentInput = {
+    part.latestInput = {
+      avatar: 'peace',
       text: '',
       displayName: action.user.displayName,
     };
@@ -128,7 +132,8 @@ export const part = {
     */
     // やり取りを辞書化するためinputを保持しておく
     const m = action.message;
-    part.currentInput = {
+    part.latestInput = {
+      avatar: 'peace',
       text: m.text,
       displayName: m.displayName,
     };
@@ -145,18 +150,38 @@ export const part = {
 
   render: async (action) => {
     /*
-      {type: engage}の発行を受取り、
+      {type: approve}の発行を受取り、
+      ・active状態だったらログを学習する
       ・outScriptを文字列化する
       ・レンダリングの対象となったwordTagを記憶する
       ・in-outのペアを辞書に書き込む
       ・activationを行う
     */
-    part.activationLevel = Number(
-      await botDxIo.pickTag('{ACTIVATION}', part.botId, 1.2)
-    );
+
+    // active状態が続いていたら会話内容を記録。
+    // activationLevelは漸減
+    if (part.activationLevel > 0) {
+      await botDxIo.memorizeLine(
+        part.latestOutput,
+        part.latestInput,
+        part.moduleId
+      );
+      await botDxIo.touchDxScheme(part.botId, part.moduleName);
+
+      part.activationLevel *= part.retention;
+    } else {
+      // アクティベーション
+      part.activationLevel = Number(
+        await botDxIo.pickTag('{ACTIVATION}', part.botId, 1.2)
+      );
+    }
+
+    // inScriptの候補に含まれるwordタグを記憶
+    await part._spotWord(action.index);
 
     const line = part.outScript[action.index];
     // line = [head,text]
+    const head = line[0];
     let text = await botDxIo.expand(line[1], part.botId, part.moduleName);
 
     // 条件タグの書き込み
@@ -169,22 +194,25 @@ export const part = {
       return '';
     });
 
-    // ユーザ名を復号化
-    console.log(part.currentInput);
-    text = text.replaceAll('{user}', part.currentInput.displayName);
+    text = await part._dispatchWord(text);
 
-    const avatar = line[0] !== 'bot' ? line[0] : part.defaultAvatar;
+    const avatar = head !== 'bot' ? head : part.defaultAvatar;
+
+    part.latestOutput = {
+      avatar: avatar,
+      text: `${text}`,
+      displayName: '',
+    };
+
+    // ユーザ名を復号化
+    text = text.replaceAll('{user}', part.latestInput.displayName);
+
     part.channel.postMessage({
       type: 'reply',
       moduleName: part.moduleName,
       text: text,
       avatar: avatar,
     });
-
-    // 採用されたcurrentInputとreplyの組を辞書に書き込む
-    // 暫定的にpage0のみ
-    // {user}と{bot}を入れ替える？
-    // ここからコーディング
   },
 
   deactivate: () => {
@@ -205,10 +233,56 @@ export const part = {
     console.assert(stage2.status === 'ok', stage2.errors);
 
     part.outScript = stage2.outScript;
-    part.source = matrix.matrixize(
-      stage2.inScript,
-      part.calcParams,
-      part.noder
-    );
+    part.inScript = stage2.inScript.flat();
+    part.source = {
+      moduleName: part.moduleName,
+      ...matrix.matrixize(stage2.inScript, part.calcParams, part.noder),
+    };
+  },
+
+  /**
+   *  入力文字列に含まれるwordタグに該当した単語を記憶し、
+   * 出力文字列に反映する
+   * @param {Number} index retrieve()で選んだ返答のindex
+   * @return {Array} [head,text]出力
+   */
+  async _spotWord(index) {
+    const inNodes = part.noder.nodify(part.inScript[index][1]);
+    for (const node of inNodes) {
+      const m = node.feat.match(RE_WORD_TAG);
+      if (m) {
+        const key = m[1];
+        const value = [node.surface.split(m[2])];
+        await botDxIo.updateTagValue(key, value, part.botId, {overwrite: true});
+      }
+    }
+  },
+
+  /**
+   * 出力文字列に含まれるwordタグを記憶しているwordに置き換える
+   * @param {String} text 出力テキスト
+   * @return {String} wordタグを文字列に戻した出力テキスト
+   */
+  async _dispatchWord(text) {
+    const outNodes = part.noder.nodify(text);
+    const rendered = [];
+
+    for (const node of outNodes) {
+      const m = node.feat.match(RE_WORD_TAG);
+      if (m) {
+        const key = m[1];
+        const suffix = m[2];
+        const word = await botDxIo.pickTag(key, part.botId);
+        if (word) {
+          rendered.push(`${word}${suffix}`);
+        } else {
+          rendered.push(node.surface);
+        }
+      } else {
+        rendered.push(node.surface);
+      }
+    }
+
+    return rendered.join('');
   },
 };

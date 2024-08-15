@@ -50,7 +50,8 @@
         └page0
   という構成とする。originはschemeに格納された内容、page0は
   追記された内容とする。またoriginではschemeのスクリプトを
-  そのままコピーするため、memoryになるべき内容も含む。
+  そのままコピーするため、memoryになるべき内容も含む。dxから
+  fsにコピーされたときにはmemoryとscriptが分離した状態になる
 
   ## memory
 

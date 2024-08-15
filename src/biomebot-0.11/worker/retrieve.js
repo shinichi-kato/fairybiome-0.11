@@ -15,7 +15,7 @@ import {
   multiply,
   norm,
   randomInt,
-  clone,
+  matrix,
   squeeze,
   cos,
 } from 'mathjs';
@@ -104,7 +104,8 @@ export async function retrieve(message, source, botId, noder) {
     await botDxIo.writeTag('{UNKNOWN}', [unknown.word], botId);
   }
   // 類似度計算
-  const wvdot = apply(source.wordMatrix, 1, (x) => dot(squeeze(x), wv));
+  const wvs = squeeze(wv);
+  const wvdot = apply(source.wordMatrix, 1, (x) => dot(squeeze(x), wvs));
   const cvdot = apply(source.condMatrix, 1, (x) => dot(squeeze(x), cv));
   const tvsim = apply(source.timeMatrix, 1, (x) =>
     timeSimilarity(squeeze(x), tv)
@@ -129,7 +130,7 @@ export async function retrieve(message, source, botId, noder) {
   }
 
   // 直前の状態を記憶
-  source.prevWv = clone(wv);
+  source.prevWv = matrix(wv);
 
   return {
     score: maxScore,
@@ -191,8 +192,9 @@ function generateWv(nodes, source) {
 
   // 直前のwvの影響をtailingに応じて受けたwvを得る
   let wvd = concat(source.prevWv, wv, 0);
+
   wvd = multiply(source.delayEffect, wvd);
-  wvd = squeeze(row(wvd, 1));
+  wvd = row(wvd, 1);
 
   return [wvd, unknown];
 }

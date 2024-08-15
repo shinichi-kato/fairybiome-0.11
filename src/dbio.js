@@ -106,9 +106,9 @@ export class Dbio {
     this.db = new Dexie('Biomebot-0.11');
     this.db.version(1).stores({
       botModules: '[data.botId+data.moduleName]',
-      scripts: '++id,botModuleId',
+      scripts: '++id,botModuleId,doc',
       memory: '[botId+moduleName+key]',
-      wordTag: '++id, &word',
+      wordTag: '++id, &word, tag',
     });
   }
 

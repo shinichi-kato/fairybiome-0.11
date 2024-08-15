@@ -118,7 +118,6 @@ export class Noder {
     this.wordToTags = [];
     this.loadTags = this.loadTags.bind(this);
     this.nodify = this.nodify.bind(this);
-    this.denodify = this.denodify.bind(this);
   }
 
   /**
@@ -208,15 +207,6 @@ export class Noder {
     // タグに続く助詞を取り込む
     nodes = joinPostParticle(nodes);
     return nodes;
-  }
-
-  /**
-   * ノード列を文字列に戻す
-   * @param {Array} nodes
-   * @return {String}
-   */
-  denodify(nodes) {
-    return '';
   }
 }
 

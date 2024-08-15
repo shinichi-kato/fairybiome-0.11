@@ -1,4 +1,4 @@
-import React, {useLayoutEffect, useRef, useEffect, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {useStaticQuery, graphql} from 'gatsby';
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
@@ -149,7 +149,6 @@ function SystemMessage({message}) {
  */
 export default function LogView({firestore, uid, botRepr}) {
   const [log, setLog] = useState([]);
-  const scrollBottomRef = useRef();
 
   const siteSnap = useStaticQuery(graphql`
     query {
@@ -167,14 +166,6 @@ export default function LogView({firestore, uid, botRepr}) {
       siteSnap.site.siteMetadata.balloonBackgroundAlpha
     ),
   });
-
-  // ------------------------------------------------
-  // 書き換わるたびに最下行へ自動スクロール
-  //
-
-  useLayoutEffect(() => {
-    scrollBottomRef?.current?.scrollIntoView();
-  }, [log]);
 
   // ------------------------------------------------
   // ログの購読
