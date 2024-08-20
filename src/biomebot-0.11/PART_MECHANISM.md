@@ -326,6 +326,13 @@ peace ボットの返答(先頭が有効なavatar名の場合そのavatarが表�
 ```
 
 ## TODO
-* timeMatrixがきちんと動作してるか確認
+* -- timeMatrixがきちんと動作してるか確認 --
+* wordタグへの置き換え、戻しが動作しているか
+* firestoreへの書き戻しが動作しているか
+
+## BUG
+* firestore上でscriptsのpage0データがoriginに格納されてしまう
+* -- db.scriptsでtext:""になっているデータがある。例えばid=48 --
+* -- user発言はpageがあるがbotはない --
 
 

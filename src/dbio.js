@@ -10,7 +10,7 @@
       botId,
       schemeName,
       moduleName: 'main',
-      updatedAt: "yyyy/mm/dd hh:mm/ss",
+      updatedAt: date,
       author: "",
       description: "",
       avatarDir,
@@ -31,7 +31,7 @@
       botId,
       schemeName,
       moduleName,
-      updatedAt: ISOString,
+      updatedAt: date,
     }
   }
   ```
@@ -106,7 +106,7 @@ export class Dbio {
     this.db = new Dexie('Biomebot-0.11');
     this.db.version(1).stores({
       botModules: '[data.botId+data.moduleName]',
-      scripts: '++id,botModuleId,doc',
+      scripts: '++id,[botModuleId+doc]',
       memory: '[botId+moduleName+key]',
       wordTag: '++id, &word, tag',
     });

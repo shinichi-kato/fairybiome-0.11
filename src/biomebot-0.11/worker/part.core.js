@@ -134,10 +134,10 @@ export const part = {
     const m = action.message;
     part.latestInput = {
       avatar: 'peace',
-      text: m.text,
+      text: part._standardize(m.text),
       displayName: m.displayName,
     };
-
+    console.log(part.latestInput);
     const retr = await retrieve(m, part.source, part.botId, part.noder);
 
     part.channel.postMessage({
@@ -176,11 +176,12 @@ export const part = {
       );
     }
 
-    // inScriptの候補に含まれるwordタグを記憶
-    await part._spotWord(action.index);
+    // 入力文字列に含まれるwordタグを記憶
+    await part._spotWord(part.latestInput.text);
 
     const line = part.outScript[action.index];
     // line = [head,text]
+    console.log(action.index, line);
     const head = line[0];
     let text = await botDxIo.expand(line[1], part.botId, part.moduleName);
 
@@ -195,7 +196,7 @@ export const part = {
     });
 
     text = await part._dispatchWord(text);
-
+    
     const avatar = head !== 'bot' ? head : part.defaultAvatar;
 
     part.latestOutput = {
@@ -233,7 +234,6 @@ export const part = {
     console.assert(stage2.status === 'ok', stage2.errors);
 
     part.outScript = stage2.outScript;
-    part.inScript = stage2.inScript.flat();
     part.source = {
       moduleName: part.moduleName,
       ...matrix.matrixize(stage2.inScript, part.calcParams, part.noder),
@@ -243,16 +243,17 @@ export const part = {
   /**
    *  入力文字列に含まれるwordタグに該当した単語を記憶し、
    * 出力文字列に反映する
-   * @param {Number} index retrieve()で選んだ返答のindex
+   * @param {String} text retrieve()で選んだ返答のindex
    * @return {Array} [head,text]出力
    */
-  async _spotWord(index) {
-    const inNodes = part.noder.nodify(part.inScript[index][1]);
+  async _spotWord(text) {
+    const inNodes = part.noder.nodify(text);
     for (const node of inNodes) {
       const m = node.feat.match(RE_WORD_TAG);
       if (m) {
         const key = m[1];
         const value = [node.surface.split(m[2])];
+        console.log('spotted', key, '=', value);
         await botDxIo.updateTagValue(key, value, part.botId, {overwrite: true});
       }
     }
@@ -284,5 +285,21 @@ export const part = {
     }
 
     return rendered.join('');
+  },
+
+  /**
+   * ユーザの入力文字列を規格化
+   * @param {String} text 入力文字列
+   * @return {String} 規格化した文字列
+   */
+  _standardize(text) {
+    // 末尾が。!?などでなければ「。」を補う
+    const RE_END_CHAR = /[、。！？｡!?.,]$/;
+    const m = text.match(RE_END_CHAR);
+    const result = m ? text : `${text}。`;
+
+    // 末尾の ！！！？などを単純化
+
+    return result;
   },
 };

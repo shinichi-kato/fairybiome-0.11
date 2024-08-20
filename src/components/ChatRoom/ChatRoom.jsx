@@ -40,6 +40,7 @@ export default function ChatRoom({firestore}) {
       ecosys: eco.ecoState,
     });
     bot.writeLog(message.toObject());
+    setText('');
   };
   return (
     <Container maxWidth='xs'>

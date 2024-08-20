@@ -76,7 +76,10 @@ class BotDxIo extends Dbio {
       // scriptの内容はdb.scriptに記憶。変更点の追跡が大変なので
       // 一旦削除し上書きする。
       // scriptの内容のうち、タグはmemoryに記憶する
-      this.db.scripts.where({botModuleId: module.fsId, doc: 'origin'}).delete();
+      this.db.scripts
+        .where('[botModuleId+doc]')
+        .equals([module.fsId, 'origin'])
+        .delete();
       this.db.memory.where('botId').equals(module.fsId).delete();
 
       for (const line of module.data.script) {
@@ -90,6 +93,7 @@ class BotDxIo extends Dbio {
             doc: 'origin',
           });
         } else {
+          console.log(line);
           await this.db.scripts.add({
             botModuleId: module.fsId,
             ...line,
@@ -139,9 +143,11 @@ class BotDxIo extends Dbio {
         snap.data.memory = await this.downloadDxMemory(botId, snap.moduleName);
       }
       scheme.botModules.push(snap);
-      const ts = new Date(snap.data.updatedAt.seconds * 1000);
-      if (scheme.updatedAt < ts) {
-        scheme.updatedAt = ts;
+      if (toString.call(snap.data.updatedAt) !== '[object Date]') {
+        snap.data.updatedAt = new Date(snap.data.updatedAt.seconds * 1000);
+      }
+      if (scheme.updatedAt < snap.data.updatedAt) {
+        scheme.updatedAt = snap.data.updatedAt;
       }
     }
 
@@ -196,9 +202,9 @@ class BotDxIo extends Dbio {
    */
   async downloadDxScript(moduleId) {
     return await this.db.scripts
-      .where('botModuleId')
-      .equals(moduleId)
-      .toArray();
+      .where('[botModuleId+doc]')
+      .between([moduleId, Dexie.minKey], [moduleId, Dexie.maxKey])
+      .sortBy('id');
   }
 
   /**
@@ -543,21 +549,26 @@ class BotDxIo extends Dbio {
     latestInputはそれに対するユーザの返答とみなす。
     そのペアを発言者を入れ替えて記憶する。
     */
-    const ts = new Date().valueOf();
 
-    // {user}と{bot}の入れ替えは
-    // 未実装
-    await this.db.scripts.add({
-      botModuleId: moduleId,
-      head: 'user',
-      text: `${latestOutput.text}\t${ts}`,
-      doc: 'page0',
-    });
-    await this.db.scripts.add({
-      botModuleId: moduleId,
-      head: 'bot',
-      text: `${latestInput.text}`,
-    });
+    if (latestOutput.text !== '' && latestInput.text !== '') {
+      const ts = new Date().valueOf();
+      console.log(latestOutput, latestInput);
+
+      // {user}と{bot}の入れ替えは
+      // 未実装
+      await this.db.scripts.add({
+        botModuleId: moduleId,
+        head: 'user',
+        text: `${latestOutput.text}\t${ts}`,
+        doc: 'page0',
+      });
+      await this.db.scripts.add({
+        botModuleId: moduleId,
+        head: 'bot',
+        doc: 'page0',
+        text: latestInput.text,
+      });
+    }
   }
 }
 

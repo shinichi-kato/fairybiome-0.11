@@ -174,6 +174,28 @@ export async function syncCache(firestore, graphqlSnap, schemeName, botId) {
 async function uploadFsScheme(firestore, scheme) {
   const batch = writeBatch(firestore);
 
+  const writeScript = (data, docRef) => {
+    if ('script' in data) {
+      const origins = data.script.filter((item) => item.doc === 'origin');
+      if (origins.length !== 0) {
+        console.log(origins);
+        const scriptRef = doc(docRef, 'scripts', 'origin');
+        batch.set(scriptRef, {script: origins});
+      }
+
+      const page0s = data.script.filter((item) => item.doc === 'page0');
+      if (page0s.length !== 0) {
+        console.log(page0s);
+        const page0Ref = doc(docRef, 'scripts', 'page0');
+        batch.set(page0Ref, {script: page0s});
+      }
+    }
+    if ('memory' in data && data.memory) {
+      const memoryRef = doc(docRef, 'scripts', 'memory');
+      batch.set(memoryRef, data.memory);
+    }
+  };
+
   // main moduleのscriptは各partでも読み込むため、はじめに
   // mainを探してuploadし、他にfsIdを渡す
   let main;
@@ -194,14 +216,29 @@ async function uploadFsScheme(firestore, scheme) {
 
       // scriptはscriptサブコレクションの'origin'というdocに
       // 格納。ユーザによる追記とdocを分ける
-      if ('script' in main.data) {
-        const scriptRef = doc(docRef, 'scripts', 'origin');
-        batch.set(scriptRef, {script: main.data.script});
-      }
-      if ('memory' in main.data && main.data.memory) {
-        const memoryRef = doc(docRef, 'scripts', 'memory');
-        batch.set(memoryRef, main.data.memory);
-      }
+      writeScript(main, docRef);
+      // if ('script' in main.data) {
+      //   const origins = main.data.script.filter(
+      //     (item) => item.doc === 'origin'
+      //   );
+      //   if (origins.length !== 0) {
+      //     console.log(origins);
+      //     const scriptRef = doc(docRef, 'scripts', 'origin');
+      //     batch.set(scriptRef, {script: origins});
+      //   }
+
+      //   const page0s = main.data.script.filter((item) =>
+      //  item.doc === 'page0');
+      //   if (page0s.length !== 0) {
+      //     console.log(page0s);
+      //     const page0Ref = doc(docRef, 'scripts', 'page0');
+      //     batch.set(page0Ref, {script: page0s});
+      //   }
+      // }
+      // if ('memory' in main.data && main.data.memory) {
+      //   const memoryRef = doc(docRef, 'scripts', 'memory');
+      //   batch.set(memoryRef, main.data.memory);
+      // }
       break;
     }
   }
@@ -221,15 +258,16 @@ async function uploadFsScheme(firestore, scheme) {
         script: 'on scripts/origin',
         mainFsId: main.fsId,
       });
+      writeScript(module, docRef);
 
-      if ('script' in module.data) {
-        const scriptRef = doc(docRef, 'scripts', 'origin');
-        batch.set(scriptRef, {script: module.data.script});
-      }
-      if ('memory' in module.data && module.data.memory) {
-        const memoryRef = doc(docRef, 'scripts', 'memory');
-        batch.set(memoryRef, module.data.memory);
-      }
+      // if ('script' in module.data) {
+      //   const scriptRef = doc(docRef, 'scripts', 'origin');
+      //   batch.set(scriptRef, {script: module.data.script});
+      // }
+      // if ('memory' in module.data && module.data.memory) {
+      //   const memoryRef = doc(docRef, 'scripts', 'memory');
+      //   batch.set(memoryRef, module.data.memory);
+      // }
     }
   }
   await batch.commit();
@@ -254,21 +292,32 @@ async function downloadFsScheme(firestore, botId) {
   for (const d of snap.docs) {
     const data = d.data();
     const scriptRef = doc(botModulesRef, d.id, 'scripts', 'origin');
+    const page0Ref = doc(botModulesRef, d.id, 'scripts', 'page0');
     const memoryRef = doc(botModulesRef, d.id, 'scripts', 'memory');
     const sq = await getDoc(scriptRef);
+    const pq = await getDoc(page0Ref);
+    let scripts = sq.data();
+    if (pq.exists()) {
+      const ps = pq.data();
+      scripts = scripts.script.concat(ps.script);
+    }
+    // この周辺実装確認のこと
+
     const mq = await getDoc(memoryRef);
 
     scheme.botModules.push({
       fsId: d.id,
       data: {
         ...data,
-        ...sq.data(),
-        memory: mq.data(),
+        ...scripts,
+        memory: mq.exists() ? mq.data() : {},
       },
     });
-    const ts = new Date(data.updatedAt.seconds * 1000);
-    if (scheme.updatedAt < ts) {
-      scheme.updatedAt = ts;
+    if (toString.call(data.updatedAt) !== '[object Date]') {
+      data.updatedAt = new Date(data.updatedAt.seconds * 1000);
+    }
+    if (scheme.updatedAt < data.updatedAt) {
+      scheme.updatedAt = data.updatedAt;
     }
   }
   return scheme;
@@ -311,17 +360,16 @@ export function graphqlToScheme(gqSnap, schemeName, botId) {
   gqSnap.forEach((node) => {
     if (node.relativeDirectory === schemeName) {
       const s = JSON.parse(node.internal.content);
-      const u = new Date(s.updatedAt);
+      s.updatedAt = new Date(s.updatedAt);
 
-      if (scheme.updatedAt < u) {
-        scheme.updatedAt = u;
+      if (scheme.updatedAt < s.updatedAt) {
+        scheme.updatedAt = s.updatedAt;
       }
       scheme.botModules.push({
         id: null,
         data: {
           ...s,
           script: parseScript(s.script),
-          updatedAt: u,
           moduleName: node.name,
           schemeName: schemeName,
           botId: botId,
@@ -341,6 +389,7 @@ export function graphqlToScheme(gqSnap, schemeName, botId) {
 export function graphqlToWordTag(gqSnap) {
   const valueTagList = [];
   for (const node of gqSnap) {
+    // 取れてないtokenファイルがある
     for (const token of node.values) {
       const [tag, values] = token.split(' ', 2);
       for (const w of values.split(',')) {
