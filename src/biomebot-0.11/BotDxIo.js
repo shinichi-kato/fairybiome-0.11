@@ -81,7 +81,6 @@ class BotDxIo extends Dbio {
         .equals([module.fsId, 'origin'])
         .delete();
       this.db.memory.where('botId').equals(module.fsId).delete();
-
       for (const line of module.data.script) {
         const m = line.text.match(RE_TAG_LINE);
         if (m) {
@@ -93,7 +92,6 @@ class BotDxIo extends Dbio {
             doc: 'origin',
           });
         } else {
-          console.log(line);
           await this.db.scripts.add({
             botModuleId: module.fsId,
             ...line,

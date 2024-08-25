@@ -176,16 +176,19 @@ async function uploadFsScheme(firestore, scheme) {
 
   const writeScript = (data, docRef) => {
     if ('script' in data) {
-      const origins = data.script.filter((item) => item.doc === 'origin');
+      console.log(data.script)
+      // 初期のgraphqlから得たデータにはdoc情報がない。
+      // gqShcemeからのアップロードでoriginに出力されないらしい
+      const origins = data.script.filter(
+        (item) => (!('doc' in item) || item.doc === 'origin')
+      );
       if (origins.length !== 0) {
-        console.log(origins);
         const scriptRef = doc(docRef, 'scripts', 'origin');
         batch.set(scriptRef, {script: origins});
       }
 
       const page0s = data.script.filter((item) => item.doc === 'page0');
       if (page0s.length !== 0) {
-        console.log(page0s);
         const page0Ref = doc(docRef, 'scripts', 'page0');
         batch.set(page0Ref, {script: page0s});
       }
@@ -216,29 +219,7 @@ async function uploadFsScheme(firestore, scheme) {
 
       // scriptはscriptサブコレクションの'origin'というdocに
       // 格納。ユーザによる追記とdocを分ける
-      writeScript(main, docRef);
-      // if ('script' in main.data) {
-      //   const origins = main.data.script.filter(
-      //     (item) => item.doc === 'origin'
-      //   );
-      //   if (origins.length !== 0) {
-      //     console.log(origins);
-      //     const scriptRef = doc(docRef, 'scripts', 'origin');
-      //     batch.set(scriptRef, {script: origins});
-      //   }
-
-      //   const page0s = main.data.script.filter((item) =>
-      //  item.doc === 'page0');
-      //   if (page0s.length !== 0) {
-      //     console.log(page0s);
-      //     const page0Ref = doc(docRef, 'scripts', 'page0');
-      //     batch.set(page0Ref, {script: page0s});
-      //   }
-      // }
-      // if ('memory' in main.data && main.data.memory) {
-      //   const memoryRef = doc(docRef, 'scripts', 'memory');
-      //   batch.set(memoryRef, main.data.memory);
-      // }
+      writeScript(main.data, docRef);
       break;
     }
   }
@@ -258,16 +239,7 @@ async function uploadFsScheme(firestore, scheme) {
         script: 'on scripts/origin',
         mainFsId: main.fsId,
       });
-      writeScript(module, docRef);
-
-      // if ('script' in module.data) {
-      //   const scriptRef = doc(docRef, 'scripts', 'origin');
-      //   batch.set(scriptRef, {script: module.data.script});
-      // }
-      // if ('memory' in module.data && module.data.memory) {
-      //   const memoryRef = doc(docRef, 'scripts', 'memory');
-      //   batch.set(memoryRef, module.data.memory);
-      // }
+      writeScript(module.data, docRef);
     }
   }
   await batch.commit();
@@ -302,6 +274,7 @@ async function downloadFsScheme(firestore, botId) {
       scripts = scripts.script.concat(ps.script);
     }
     // この周辺実装確認のこと
+    console.log(data.moduleName, scripts);
 
     const mq = await getDoc(memoryRef);
 
