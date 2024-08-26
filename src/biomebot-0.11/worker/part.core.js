@@ -181,7 +181,6 @@ export const part = {
 
     const line = part.outScript[action.index];
     // line = [head,text]
-    console.log(action.index, line);
     const head = line[0];
     let text = await botDxIo.expand(line[1], part.botId, part.moduleName);
 
@@ -254,6 +253,7 @@ export const part = {
         const key = m[1];
         const value = [node.surface.split(m[2])];
         console.log('spotted', key, '=', value);
+        // スポットされた例がない・・・
         await botDxIo.updateTagValue(key, value, part.botId, {overwrite: true});
       }
     }

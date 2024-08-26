@@ -176,21 +176,34 @@ async function uploadFsScheme(firestore, scheme) {
 
   const writeScript = (data, docRef) => {
     if ('script' in data) {
-      console.log(data.script)
-      // 初期のgraphqlから得たデータにはdoc情報がない。
-      // gqShcemeからのアップロードでoriginに出力されないらしい
-      const origins = data.script.filter(
-        (item) => (!('doc' in item) || item.doc === 'origin')
-      );
-      if (origins.length !== 0) {
-        const scriptRef = doc(docRef, 'scripts', 'origin');
-        batch.set(scriptRef, {script: origins});
+      console.log(data.script);
+
+      const gqScript = [];
+      const origin = [];
+      const page0 = [];
+      for (const item of data.script) {
+        if (!('item' in doc)) {
+          // 初期のgraphqlから得たデータにはdoc情報がないため
+          // 補完する
+          gqScript.push({...item, doc: 'origin'});
+        } else if (item.doc === 'origin') {
+          origin.push(item);
+        } else if (item.doc === 'page0') {
+          page0.push(item);
+        }
       }
 
-      const page0s = data.script.filter((item) => item.doc === 'page0');
-      if (page0s.length !== 0) {
+      if (gqScript.length !== 0) {
+        const scriptRef = doc(docRef, 'scripts', 'origin');
+        batch.set(scriptRef, {script: gqScript});
+      }
+      if (origin.length !== 0) {
+        const scriptRef = doc(docRef, 'scripts', 'origin');
+        batch.set(scriptRef, {script: origin});
+      }
+      if (page0.length !== 0) {
         const page0Ref = doc(docRef, 'scripts', 'page0');
-        batch.set(page0Ref, {script: page0s});
+        batch.set(page0Ref, {script: page0});
       }
     }
     if ('memory' in data && data.memory) {

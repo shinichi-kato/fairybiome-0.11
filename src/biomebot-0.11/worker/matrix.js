@@ -56,6 +56,7 @@ import {time2yearRad, time2dateRad} from '../../components/Ecosystem/dayCycle';
 const RE_BLANK_LINE = /^\s*$/;
 const KIND_USER = 1;
 const KIND_BOT = 2;
+const KIND_CUE = 4;
 
 const RE_COND_TAG = /^\{(\?|!|\?!)([a-zA-Z_][a-zA-Z0-9_]*)\}/;
 
@@ -219,7 +220,7 @@ export function matrixize(inScript, params, noder) {
   -------------------------------------------------------  */
 
   let timeMatrix = dotMultiply(ones(wvSize[0], 2), NaN);
-  i=0;
+  i = 0;
   for (const block of inScript) {
     for (const line of block) {
       const ts = line[2];
@@ -398,6 +399,7 @@ export function preprocess(script, validAvatars, defaultAvatar) {
       }
       block.push([head, text + withLine, timestamp]);
       isCueOrUserExists = true;
+      prevKind = KIND_CUE;
       continue;
     }
 
@@ -433,6 +435,11 @@ export function preprocess(script, validAvatars, defaultAvatar) {
 
   if (block.length !== 0) {
     newScript.push(block);
+  }
+
+  if (prevKind !== KIND_BOT) {
+    // 最後はbot行で終わること
+    errors.push('最終行がbotの発言になっていません');
   }
 
   return {
