@@ -11,7 +11,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: npm ci && npm run build
+      - name: build gatsby site
+        env: 
+          GATSBY_FIREBASE_API_KEY: ${{ secrets.GATSBY_FIREBASE_API_KEY }}
+          GATSBY_FIREBASE_AUTH_DOMAIN: ${{ secrets.GATSBY_FIREBASE_AUTH_DOMAIN}}
+          GATSBY_FIREBASE_PROJECT_ID: ${{ secrets.GATSBY_FIREBASE_PROJECT_ID }}
+          GATSBY_FIREBASE_STORAGE_BUCKET: ${{ secrets.GATSBY_FIREBASE_STORAGE_BUCKET}}
+          GATSBY_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.GATSBY_FIREBASE_MESSAGING_SENDER_ID }}
+          GATSBY_FIREBASE_APP_ID: ${{ secrets.GATSBY_FIREBASE_APP_ID }}
+          GATSBY_FIREBASE_MEASUREMENT_ID: ${{ secrets.GATSBY_FIREBASE_MEASUREMENT_ID}}
+        run: npm ci && npm run build
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
