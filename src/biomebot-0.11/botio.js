@@ -176,7 +176,6 @@ async function uploadFsScheme(firestore, scheme) {
 
   const writeScript = (data, docRef) => {
     if ('script' in data) {
-      console.log(data.script);
 
       const gqScript = [];
       const origin = [];

@@ -175,6 +175,7 @@ export class Noder {
     // text中のシステムタグ類はタグ化する
     for (const {tag, word} of this.wordToTags) {
       if (text.indexOf(word) !== -1) {
+        console.log('tag:', tag, 'word:', word);
         tagDict[i] = {surf: word, feat: tag};
         text = text.replaceAll(word, `\v${i++}\v`);
       }

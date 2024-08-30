@@ -195,7 +195,7 @@ export const part = {
     });
 
     text = await part._dispatchWord(text);
-    
+
     const avatar = head !== 'bot' ? head : part.defaultAvatar;
 
     part.latestOutput = {
@@ -227,10 +227,10 @@ export const part = {
       part.validAvatars,
       part.defaultAvatar
     );
-    console.assert(stage1.status === 'ok', stage1.errors);
+    console.assert(stage1.status === 'ok', part.moduleName, stage1.errors);
 
     const stage2 = matrix.tee(stage1.script);
-    console.assert(stage2.status === 'ok', stage2.errors);
+    console.assert(stage2.status === 'ok', part.moduleName, stage2.errors);
 
     part.outScript = stage2.outScript;
     part.source = {
@@ -247,6 +247,7 @@ export const part = {
    */
   async _spotWord(text) {
     const inNodes = part.noder.nodify(text);
+    console.log(inNodes);
     for (const node of inNodes) {
       const m = node.feat.match(RE_WORD_TAG);
       if (m) {
@@ -288,7 +289,7 @@ export const part = {
   },
 
   /**
-   * ユーザの入力文字列を規格化
+   * 入力文字列を規格化
    * @param {String} text 入力文字列
    * @return {String} 規格化した文字列
    */

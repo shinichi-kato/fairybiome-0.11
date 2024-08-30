@@ -59,6 +59,7 @@ const KIND_BOT = 2;
 const KIND_CUE = 4;
 
 const RE_COND_TAG = /^\{(\?|!|\?!)([a-zA-Z_][a-zA-Z0-9_]*)\}/;
+const RE_LINE_END = /[、。！？｡!?.,]$/;
 
 /**
  * inScriptから類似度行列を生成
@@ -347,9 +348,29 @@ export function preprocess(script, validAvatars, defaultAvatar) {
   const errors = [];
 
   const parseLine = (line) => {
-    const [head, text] = line.text.split(' ', 2);
-    const ts = line.timestamp || null;
-    return [head || '', text || '', ts];
+    let head = '';
+    let text = '';
+    let ts = null;
+
+    if ('head' in line) {
+      head = line.head;
+      text = line.text;
+    } else if (line.text !== '') {
+      [head, text] = line.text.split(' ', 2);
+    }
+
+    if ('timestamp' in line) {
+      if ('seconds' in line.timestamp) {
+        ts = new Date(line.timestamp.seconds * 1000);
+      } else {
+        ts = line.timestamp;
+      }
+    } else {
+      [text, ts] = text.split('\t', 2);
+      ts = ts ? new Date(Number(ts)) : null;
+    }
+
+    return [head, text, ts];
   };
 
   // headのbot指定
@@ -364,7 +385,8 @@ export function preprocess(script, validAvatars, defaultAvatar) {
 
   for (let i = 0, l = script.length; i < l; i++) {
     const parsed = parseLine(script[i]);
-    const [head, text, timestamp] = parsed;
+    let [head, text, timestamp] = parsed;
+    // console.log(parsed);
 
     // コメント行は飛ばす
     if (head.startsWith('#')) {
@@ -386,6 +408,12 @@ export function preprocess(script, validAvatars, defaultAvatar) {
         isCueOrUserExists = false;
       }
       continue;
+    }
+
+    // textの標準化
+    const m = text.match(RE_LINE_END);
+    if (!m) {
+      text += '。';
     }
 
     // cue行
@@ -439,7 +467,10 @@ export function preprocess(script, validAvatars, defaultAvatar) {
 
   if (prevKind !== KIND_BOT) {
     // 最後はbot行で終わること
-    errors.push('最終行がbotの発言になっていません');
+    console.log(script[script.length - 1]);
+    errors.push(
+      `最終行${script[script.length - 1]}がbotの発言になっていません`
+    );
   }
 
   return {
