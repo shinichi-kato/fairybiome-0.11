@@ -28,7 +28,7 @@ export const part = {
     part.moduleName = p.data.moduleName;
     part.validAvatars = validAvatars;
     part.defaultAvatar = await botDxIo.pickTag(
-      '{DEFALUT_AVATAR}',
+      '{DEFAULT_AVATAR}',
       botId,
       'peace'
     );

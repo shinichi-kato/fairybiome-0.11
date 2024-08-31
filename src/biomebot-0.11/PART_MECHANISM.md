@@ -334,5 +334,6 @@ peace ボットの返答(先頭が有効なavatar名の場合そのavatarが表�
 * firestore上でscriptsのpage0データがoriginに格納されてしまう
 * -- db.scriptsでtext:""になっているデータがある。例えばid=48 --
 * -- user発言はpageがあるがbotはない --
-
+* -- DEFAULT_AVATARが効いていない --
+* 新規な記憶がoriginに入ってる
 

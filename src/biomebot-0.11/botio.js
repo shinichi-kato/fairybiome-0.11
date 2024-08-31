@@ -286,7 +286,7 @@ async function downloadFsScheme(firestore, botId) {
       scripts = scripts.script.concat(ps.script);
     }
     // この周辺実装確認のこと
-    console.log(data.moduleName, scripts);
+    // console.log(data.moduleName, scripts);
 
     const mq = await getDoc(memoryRef);
 

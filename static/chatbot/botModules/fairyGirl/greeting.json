@@ -15,7 +15,11 @@
         "cheer 今日は！{+greeting}",
         "",
         "user こんばんは",
-        "cheer こんばんは！{+greeting}"
+        "cheer こんばんは！{+greeting}",
+        "",
+        "user 最近どう？元気？",
+        "cheer 元気ですよ！ほら！羽が光ってるでしょ？",
+        "user そうなんだ！"
     ]
 
 }
