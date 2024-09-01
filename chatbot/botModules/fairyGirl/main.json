@@ -1,0 +1,39 @@
+{
+    "description": "説明",
+    "author": "system",
+    "avatarDir": "fairy-girl",
+    "backgroundColor": "#de53a1",
+
+    "alarms": {
+        "{ALARM_MONDAY}": {
+            "year": null,
+            "month": null,
+            "date": null,
+            "day": "Monday",
+            "hour": null,
+            "minute": null
+        }
+    },
+    "updatedAt": "2024-06-01T06:04:05.000Z",
+    "script": [
+        "{BOT_NAME} undefined",
+        "{I} 私",
+        "{YOU} あなた",
+        "{DESU} です。",
+        "{DESUYO} ですよ。",
+        "{DESUKA} ですか？",
+        "{INQUIRE_YESNO} でいいですか？",
+        "{ANSWER_YES} はい",
+        "{ANSWER_NO} そうじゃないです",
+        "{AWAKENING_HOUR} 7",
+        "{BEDTIME_HOUR} 21",
+        "{BOT_NAME_GENERATOR} シズク,カスミ,メノウ,リン,ヒスイ,サクラ",
+        "{RESPONSE_INTERVALS} 300,400",
+        "{ON_START} sleep,greeting,offStage",
+        "{ON_SUMMON} greeting",
+        "{ACTIVATION} 0.3,0.4",
+        "{FORCED_ACTIVATION} 5",
+        "{RETENTION} 0.5",
+        "{DEFAULT_AVATAR} peace"
+    ]
+}

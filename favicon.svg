@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="512.0px"
+   height="512.0px"
+   viewBox="0 0 512.0 512.0"
+   version="1.1"
+   id="SVGRoot"
+   sodipodi:docname="icon.svg"
+   inkscape:version="1.2.2 (732a01da63, 2022-12-09, custom)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview598"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="px"
+     showgrid="true"
+     inkscape:zoom="0.68506594"
+     inkscape:cx="397.04207"
+     inkscape:cy="212.38831"
+     inkscape:window-width="1920"
+     inkscape:window-height="935"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1">
+    <inkscape:grid
+       type="xygrid"
+       id="grid721" />
+  </sodipodi:namedview>
+  <defs
+     id="defs593" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <path
+       id="path264"
+       style="fill:#71c837;fill-opacity:0.582563;stroke-width:5.16703"
+       d="M 0 284.21094 L 0 328.18164 L 319.70508 508.76172 C 363.38881 449.70931 247.25781 344.2832 247.25781 344.2832 L 0 284.21094 z " />
+    <path
+       id="path266"
+       style="fill:#71c837;fill-opacity:0.582563;stroke-width:5.16703"
+       d="M 0 312.99023 L 0 361.36914 L 222.86328 483.89258 C 254.5821 416.8101 132.21094 340.26367 132.21094 340.26367 L 0 312.99023 z " />
+    <path
+       id="path268"
+       style="fill:#71c837;fill-opacity:0.582563;stroke-width:5.16703"
+       d="M 351.51172 13.96875 C 308.45896 16.024567 15.551047 243.45473 0 255.54883 L 0 299.7207 L 275.54883 209.76562 C 275.54883 209.76563 419.37405 58.4208 351.51172 13.96875 z " />
+    <path
+       id="path270"
+       style="fill:#71c837;fill-opacity:0.582563;stroke-width:5.16703"
+       d="M 485.18359 49.521484 C 436.80499 45.75255 75.828536 227.52803 0 255.75 L 0 299.37891 L 4.8027344 313.86719 L 371.02734 238.72852 C 371.02734 238.72852 542.09923 136.96434 489.08008 50.609375 C 488.18003 50.010485 486.87225 49.653039 485.18359 49.521484 z " />
+  </g>
+</svg>

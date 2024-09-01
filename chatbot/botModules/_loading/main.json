@@ -1,0 +1,28 @@
+{
+    "description": "説明",
+    "author": "system",
+    "avatarDir": "default",
+    "backgroundColor": "#de53a1",
+    "updatedAt": "2024-06-01T06:04:05.000Z",
+    "memory": {
+        "{BOT_NAME}": null,
+        "{I}": ["私"],
+        "{YOU}": ["あなた"],
+        "{AWAKENING_HOUR}": [7],
+        "{BEDTIME_HOUR}": [21],
+        "{BOT_NAME_GENERATOR}": ["SYSTEM"],
+        "{RESPONSE_INTERVALS}":[300,400],
+        "{ON_START}": ["sleep","greeting","offStage"],
+        "{ON_SUMMON}": ["greeting"]
+    },
+    "alarms": {
+        "{ALARM_MONDAY}": {
+            "year": null,
+            "month": null,
+            "date": null,
+            "day": "Monday",
+            "hour": null,
+            "minute": null
+        }
+    }
+}

@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkfairybiome=self.webpackChunkfairybiome||[]).push([[125],{3331:function(e,n,t){t.r(n),t.d(n,{default:function(){return i}});var u=t(6540),r=t(342),a=t(9067);function i(){return u.createElement(r.A,{maxWidth:"xs"},u.createElement(a.A,null,"404 Not Found"))}}}]);
+//# sourceMappingURL=component---src-pages-404-js-20649fdd35f6c4f69768.js.map

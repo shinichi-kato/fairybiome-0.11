@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="600" height="800" version="1.1" viewBox="0 0 159 212" xmlns="http://www.w3.org/2000/svg" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+ <metadata>
+  <rdf:RDF>
+   <cc:Work rdf:about="">
+    <dc:format>image/svg+xml</dc:format>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <circle r="0" stroke="#c53822" stroke-width="2.26" style="paint-order:stroke markers fill"/>
+  <g stroke="#924019">
+   <circle r="0" stroke-width="1.29" style="paint-order:stroke markers fill"/>
+   <circle transform="scale(1,-1)" r="0" stroke-width="3.6" style="paint-order:stroke markers fill"/>
+   <circle transform="scale(1,-1)" r="0" stroke-width="3.6" style="paint-order:stroke markers fill"/>
+  </g>
+  <circle transform="scale(1,-1)" r="0" stroke="#4d4320" stroke-width="4.38" style="paint-order:stroke markers fill"/>
+  <circle transform="scale(1,-1)" r="0" stroke="#4d4320" stroke-width="3.52" style="paint-order:stroke markers fill"/>
+ </g>
+ <g transform="matrix(1.77 0 0 1.77 -59 -81)">
+  <g fill="#72e11c" fill-opacity=".314">
+   <circle cx="86.3" cy="54.3" r="3.24" stroke-width=".342" style="paint-order:stroke markers fill"/>
+   <circle cx="62.5" cy="58.7" r="5.1" stroke-width=".537" style="paint-order:stroke markers fill"/>
+   <circle cx="87.1" cy="149" r="10.7" stroke-width="1.13" style="paint-order:stroke markers fill"/>
+  </g>
+  <g fill="#fcef40" fill-opacity=".416">
+   <circle cx="66.4" cy="115" r="10.7" stroke-width="1.13" style="paint-order:stroke markers fill"/>
+   <circle cx="83.6" cy="95.6" r="10.7" stroke-width="1.13" style="paint-order:stroke markers fill"/>
+   <circle cx="75.4" cy="72.3" r="9.41" stroke-width=".992" style="paint-order:stroke markers fill"/>
+   <circle cx="74.9" cy="126" r="5.12" stroke-width=".54" style="paint-order:stroke markers fill"/>
+  </g>
+ </g>
+</svg>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="600" height="800" version="1.1" viewBox="0 0 159 212" xmlns="http://www.w3.org/2000/svg" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+ <metadata>
+  <rdf:RDF>
+   <cc:Work rdf:about="">
+    <dc:format>image/svg+xml</dc:format>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <circle r="0" stroke="#c53822" stroke-width="2.26" style="paint-order:stroke markers fill"/>
+  <g stroke="#924019">
+   <circle r="0" stroke-width="1.29" style="paint-order:stroke markers fill"/>
+   <circle transform="scale(1,-1)" r="0" stroke-width="3.6" style="paint-order:stroke markers fill"/>
+   <circle transform="scale(1,-1)" r="0" stroke-width="3.6" style="paint-order:stroke markers fill"/>
+  </g>
+  <circle transform="scale(1,-1)" r="0" stroke="#4d4320" stroke-width="4.38" style="paint-order:stroke markers fill"/>
+  <circle transform="scale(1,-1)" r="0" stroke="#4d4320" stroke-width="3.52" style="paint-order:stroke markers fill"/>
+ </g>
+ <path d="m80.8 107-2.25 4.99a4.31 4.31 45 0 0-3 0.22 4.31 4.31 45 0 0-2.03 1.93l-5.05-1.48 4.77 2.15a4.31 4.31 45 0 0 0.185 3.12 4.31 4.31 45 0 0 2.15 2.13l-1.45 4.93 2.12-4.7a4.31 4.31 45 0 0 2.89-0.246 4.31 4.31 45 0 0 2.16-2.22l5.16 1.51-4.93-2.21a4.31 4.31 45 0 0-0.278-2.78 4.31 4.31 45 0 0-2-2.07z" fill="#ffe300" fill-opacity=".436" stroke-width=".591" style="paint-order:stroke markers fill"/>
+ <circle cx="92.3" cy="143" r="3.83" fill="#ffdf00" fill-opacity=".215" stroke-width=".884" style="paint-order:stroke markers fill"/>
+ <circle cx="103" cy="91.2" r="2.06" fill="#fffa00" fill-opacity=".657" stroke-width=".475" style="paint-order:stroke markers fill"/>
+ <circle cx="77.1" cy="163" r="2.5" fill="#ffe300" fill-opacity=".215" stroke-width=".577" style="paint-order:stroke markers fill"/>
+ <circle cx="86.8" cy="96.9" r="2.43" fill="#fc0" fill-opacity=".215" stroke-width=".56" style="paint-order:stroke markers fill"/>
+ <circle cx="78" cy="81.5" r="1.84" fill="#fc0" fill-opacity=".777" stroke-width=".424" style="paint-order:stroke markers fill"/>
+ <circle cx="73.8" cy="136" r="3.83" fill="#fff500" fill-opacity=".215" stroke-width=".884" style="paint-order:stroke markers fill"/>
+ <circle cx="64.2" cy="129" r="3.83" fill="#fc0" fill-opacity=".215" stroke-width=".884" style="paint-order:stroke markers fill"/>
+</svg>
