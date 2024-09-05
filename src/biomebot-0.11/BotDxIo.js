@@ -89,13 +89,13 @@ class BotDxIo extends Dbio {
             moduleName: module.data.moduleName,
             key: m[1],
             value: m[2].split(','),
-            doc: 'origin',
+            doc: line.doc || 'origin',
           });
         } else {
           await this.db.scripts.add({
             botModuleId: module.fsId,
+            doc: 'origin', // もとのdocが定義されていない場合'origin'
             ...line,
-            doc: 'origin',
           });
         }
       }
@@ -103,7 +103,7 @@ class BotDxIo extends Dbio {
   }
 
   /**
-   * 指定されたmoduleの日付を現時刻に設定
+   * 指定されたmoduleの日付を現時刻に設定た
    * @param {*} botId
    * @param {*} moduleName
    */
@@ -141,6 +141,7 @@ class BotDxIo extends Dbio {
         snap.data.memory = await this.downloadDxMemory(botId, snap.moduleName);
       }
       scheme.botModules.push(snap);
+      console.log(snap.data.updatedAt)
       if (toString.call(snap.data.updatedAt) !== '[object Date]') {
         snap.data.updatedAt = new Date(snap.data.updatedAt.seconds * 1000);
       }

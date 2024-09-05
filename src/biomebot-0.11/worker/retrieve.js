@@ -20,9 +20,11 @@ import {
   cos,
 } from 'mathjs';
 
-import {botDxIo} from '../BotDxIo';
-import {time2yearRad, time2dateRad} from '../../components/Ecosystem/dayCycle';
+import { botDxIo } from '../BotDxIo';
+import { time2yearRad, time2dateRad } from '../../components/Ecosystem/dayCycle';
 const RE_COND_TAG = /^\{(\?|!|\?!)([a-zA-Z_][a-zA-Z0-9_]*)\}/;
+const HOUR_WEIGHT = 0.6; // TVにおける時刻の重み付け(ハイパーパラメータ)
+const DATE_WEIGHT = 1.0 - HOUR_WEIGHT; // TVにおける日付の重み付け(ハイパーパラメータ)
 
 /**
  * messageから返答の候補を返す
@@ -156,7 +158,7 @@ function generateWv(nodes, source) {
   let wv = zeros(1, source.wordVocabLength);
 
   // state 0:未開始 1:unknownパース中 -1:パース終了
-  let unknown = {word: '', state: 0};
+  let unknown = { word: '', state: 0 };
 
   for (const node of nodes) {
     if (node.feat in source.wordVocab) {
@@ -177,10 +179,10 @@ function generateWv(nodes, source) {
 
       if (unknown.state === 0) {
         // 未知のワード先頭
-        unknown = {word: node.surface, state: 1};
+        unknown = { word: node.surface, state: 1 };
       } else if (unknown.state === 1) {
         // 未知のワード連続
-        unknown = {word: unknown.word + node.surface, state: 2};
+        unknown = { word: unknown.word + node.surface, state: 2 };
       }
     }
   }
@@ -252,10 +254,15 @@ function timeSimilarity(x, y) {
     x,yにはそれぞれ2つの成分がある。成分ごとに角度の差を計算し
     類似性を-1〜+1の値でもとめ、合計値を返す。NaNが含まれた
     成分は計算結果を0とする。
+    第0成分は日付、第1成分は時刻に相当し、それぞれDATE_WEIGHT,
+    HOUR_WEIGHTで重み付けする。
   */
   const e0 = x[0] - y[0];
   const e1 = x[1] - y[1];
-  return (isNaN(e0) ? 0 : cos(e0)) + (isNaN(e1) ? 0 : cos(e1));
+  return (
+    DATE_WEIGHT * (isNaN(e0) ? 0 : cos(e0)) +
+    HOUR_WEIGHT * (isNaN(e1) ? 0 : cos(e1))
+  );
 }
 
 /**
@@ -278,7 +285,7 @@ export function encodeOutScript(outScript, noder) {
   for (const block of outScript) {
     for (const line of block) {
       const nodes = noder.nofidy(line.text);
-      script.push({head: line.head, nodes: nodes});
+      script.push({ head: line.head, nodes: nodes });
     }
   }
   return script;

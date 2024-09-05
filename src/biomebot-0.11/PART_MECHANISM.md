@@ -336,4 +336,5 @@ peace ボットの返答(先頭が有効なavatar名の場合そのavatarが表�
 * -- user発言はpageがあるがbotはない --
 * -- DEFAULT_AVATARが効いていない --
 * 新規な記憶がoriginに入ってる
-
+* ブラウザを変えるとfsよりもgpが優先される
+* authに失敗したときのメッセージがでない

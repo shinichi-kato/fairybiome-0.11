@@ -32,7 +32,7 @@ AuthProvider
 
 */
 
-import React, {useEffect, useReducer, useRef, createContext} from 'react';
+import React, { useEffect, useReducer, useRef, createContext } from 'react';
 import {
   onAuthStateChanged,
   createUserWithEmailAndPassword,
@@ -41,7 +41,7 @@ import {
   getAuth,
   signOut,
 } from 'firebase/auth';
-import {doc, onSnapshot, setDoc} from 'firebase/firestore';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 import Landing from '../Landing';
 import SignDialog from './SignDialog';
@@ -54,6 +54,7 @@ const MESSAGE_MAP = {
   'configuration-not-found': 'firebaseのmail/password認証を有効にしてください',
   'invalid-login-credentials': 'ユーザが登録されていません',
   'email-already-in-use': 'ユーザは登録済みです',
+  'Firebase: Error (auth/invalid-credential).': 'firebaseのクレデンシャル情報が正しくありません',
   'Missing or insufficient permissions':
     'firestoreのルールを読み書き可能に変更してください',
 };
@@ -130,7 +131,7 @@ function reducer(state, action) {
       } else {
         return {
           ...state,
-          userProps: {...initialState.userProps},
+          userProps: { ...initialState.userProps },
           authState: 'UserSettingsDialog:open',
         };
       }
@@ -197,7 +198,7 @@ function reducer(state, action) {
  * @param {JSX.Element} このcontectを作用させるkra
  * @return {JSX.Element} provider
  */
-export default function AuthProvider({firebase, firestore, children}) {
+export default function AuthProvider({ firebase, firestore, children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const unsubscribeRef = useRef();
   const uid = state.user?.uid;
@@ -283,7 +284,7 @@ export default function AuthProvider({firebase, firestore, children}) {
    * @param {String} password password文字列
    */
   function handleSignUp(email, password) {
-    dispatch({type: 'SignDialog:waiting'});
+    dispatch({ type: 'SignDialog:waiting' });
     createUserWithEmailAndPassword(state.auth, email, password)
       // 成功した場合はonAuthStateChangedがトリガされる
       .then()
@@ -332,7 +333,7 @@ export default function AuthProvider({firebase, firestore, children}) {
    *
    */
   function handleSignOut() {
-    dispatch({type: 'SignDialog:waiting'});
+    dispatch({ type: 'SignDialog:waiting' });
     signOut(state.auth);
     // onAuthStateChangeがトリガされる
   }
@@ -355,9 +356,9 @@ export default function AuthProvider({firebase, firestore, children}) {
    * @param {Object} data backgroundColor,avatarDirからなるobj
    */
   function handleChangeUserSettings(data) {
-    dispatch({type: 'UserSettingsDialog:waiting'});
+    dispatch({ type: 'UserSettingsDialog:waiting' });
 
-    updateProfile(state.auth.currentUser, {displayName: data.displayName})
+    updateProfile(state.auth.currentUser, { displayName: data.displayName })
       .then(() => {
         const docRef = doc(firestore, 'users', uid);
         setDoc(docRef, {
@@ -369,11 +370,11 @@ export default function AuthProvider({firebase, firestore, children}) {
             // listernerでstateが書き換えられる
           })
           .catch((error) => {
-            dispatch({type: 'error', errorCode: error.message});
+            dispatch({ type: 'error', errorCode: error.message });
           });
       })
       .catch((error) => {
-        dispatch({type: 'error', errorCode: error.message});
+        dispatch({ type: 'error', errorCode: error.message });
       });
   }
 

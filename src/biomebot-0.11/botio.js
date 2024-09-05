@@ -160,6 +160,7 @@ export async function syncCache(firestore, graphqlSnap, schemeName, botId) {
     } else if (dxud > fsud) {
       await uploadFsScheme(firestore, dxScheme);
     }
+    // dxud === fsudの場合書き込みしない
   }
 
   return botDxIo.getModuleNames(botId);
@@ -181,7 +182,7 @@ async function uploadFsScheme(firestore, scheme) {
       const origin = [];
       const page0 = [];
       for (const item of data.script) {
-        if (!('item' in doc)) {
+        if (!('doc' in item)) {
           // 初期のgraphqlから得たデータにはdoc情報がないため
           // 補完する
           gqScript.push({...item, doc: 'origin'});

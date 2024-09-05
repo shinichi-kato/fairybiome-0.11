@@ -224,8 +224,8 @@ export default function SignDialog(props) {
           </Button>
         </Box>
         <Box>
-          {authState.errorCode && (
-            <Alert severity='error'>{authState.errorCode}</Alert>
+          {authState.error && (
+            <Alert severity='error'>{authState.error}</Alert>
           )}
         </Box>
       </Box>
