@@ -281,10 +281,10 @@ async function downloadFsScheme(firestore, botId) {
     const memoryRef = doc(botModulesRef, d.id, 'scripts', 'memory');
     const sq = await getDoc(scriptRef);
     const pq = await getDoc(page0Ref);
-    let scripts = sq.data();
+    let script = sq.data();
     if (pq.exists()) {
       const ps = pq.data();
-      scripts = scripts.script.concat(ps.script);
+      script = script.concat(ps.script);
     }
     // この周辺実装確認のこと
     // console.log(data.moduleName, scripts);
@@ -295,7 +295,7 @@ async function downloadFsScheme(firestore, botId) {
       fsId: d.id,
       data: {
         ...data,
-        ...scripts,
+        script:script,
         memory: mq.exists() ? mq.data() : {},
       },
     });
