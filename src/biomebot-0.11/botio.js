@@ -146,6 +146,9 @@ export async function syncCache(firestore, graphqlSnap, schemeName, botId) {
   const fsud = fsScheme.updatedAt;
   const dxud = dxScheme.updatedAt;
   const gqud = gqScheme.updatedAt;
+  console.log(fsScheme)
+  console.log(dxScheme)
+  console.log(gqScheme)
 
   if (fsud < gqud && dxud < gqud) {
     // gqが最新：初期化
@@ -185,11 +188,11 @@ async function uploadFsScheme(firestore, scheme) {
         if (!('doc' in item)) {
           // 初期のgraphqlから得たデータにはdoc情報がないため
           // 補完する
-          gqScript.push({...item, doc: 'origin'});
+          gqScript.push({doc: 'origin', text:item.text, id:item.id});
         } else if (item.doc === 'origin') {
-          origin.push(item);
+          origin.push({doc:item.doc, text:item.text, id:item.id});
         } else if (item.doc === 'page0') {
-          page0.push(item);
+          page0.push({doc:item.doc, text:item.text, id:item.id});
         }
       }
 
@@ -281,13 +284,11 @@ async function downloadFsScheme(firestore, botId) {
     const memoryRef = doc(botModulesRef, d.id, 'scripts', 'memory');
     const sq = await getDoc(scriptRef);
     const pq = await getDoc(page0Ref);
-    let script = sq.data();
+    let scripts = sq.data();
     if (pq.exists()) {
       const ps = pq.data();
-      script = script.concat(ps.script);
+      scripts.script = scripts.script.concat(ps.script);
     }
-    // この周辺実装確認のこと
-    // console.log(data.moduleName, scripts);
 
     const mq = await getDoc(memoryRef);
 
@@ -295,7 +296,7 @@ async function downloadFsScheme(firestore, botId) {
       fsId: d.id,
       data: {
         ...data,
-        script:script,
+        ...scripts,
         memory: mq.exists() ? mq.data() : {},
       },
     });

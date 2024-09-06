@@ -22,6 +22,7 @@ export const main = {
    */
   deploy: async ({worker, botId, summon}) => {
     const m = await botDxIo.downloadDxModule(botId, 'main');
+    console.log(m)
     const d = m.data;
     main.worker = worker;
     main.botId = botId;
