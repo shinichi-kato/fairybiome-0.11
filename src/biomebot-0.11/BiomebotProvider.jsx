@@ -134,11 +134,25 @@ const getTokenSnap = (biomebotSnap) => {
 const getValidBotAvatars = (biomebotSnap, avatarDir) => {
   const avatars = [];
   for (const node of biomebotSnap.allFile.nodes) {
-    if (node.relativeDirectory === avatarDir) {
+    if (
+      node.relativeDirectory === avatarDir &&
+      node.sourceInstanceName === 'botAvatar'
+    ) {
       avatars.push(node.name);
     }
   }
   return avatars;
+};
+
+const getShapeShifterAvatarDirs = (biomebotSnap) => {
+  const snap = [];
+  biomebotSnap.allFile.nodes.forEach((node) => {
+    const d = node.relativeDirectory;
+    if (d.startsWith('_') && node.sourceInstanceName === 'userAvatar') {
+      snap.push(d);
+    }
+  });
+  return snap;
 };
 
 const initialState = {
@@ -391,6 +405,14 @@ export default function BiomebotProvider({
                   partWorkersRef.current.push(newPart);
                 }
               }
+              break;
+            }
+
+            case 'shapeShift': {
+              const dirs = getShapeShifterAvatarDirs(biomebotSnap);
+              const index = Math.floor(Math.random() * dirs.length);
+
+              auth.shapeShift(dirs[index]);
             }
           }
         };
@@ -415,7 +437,7 @@ export default function BiomebotProvider({
     if (state.botState === 'deployed') {
       mainWorkersMapRef.current[state.botId].postMessage({
         type: 'run',
-        user: auth.user
+        user: auth.user,
       });
       dispatch({
         type: 'run',

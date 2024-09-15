@@ -1,9 +1,10 @@
 /*
  */
 
-import {randomInt} from 'mathjs';
-import {botDxIo} from '../BotDxIo';
-import {MessageFactory} from '../../message';
+import { randomInt } from 'mathjs';
+import { botDxIo } from '../BotDxIo';
+import { MessageFactory } from '../../message';
+
 
 export const main = {
   botId: null,
@@ -20,7 +21,7 @@ export const main = {
    * @param {Boolean} summon 初期に召喚された状態で始まるか
    * @return {Object} botRepr
    */
-  deploy: async ({worker, botId, summon}) => {
+  deploy: async ({ worker, botId, summon }) => {
     const m = await botDxIo.downloadDxModule(botId, 'main');
     console.log(m)
     const d = m.data;
@@ -57,7 +58,7 @@ export const main = {
             });
 
             // biomebotに「反応中」を通知
-            main.worker.postMessage({type: 'replying'});
+            main.worker.postMessage({ type: 'replying' });
           }
           break;
         }
@@ -136,8 +137,8 @@ export const main = {
 
   recieve: async (action) => {
     // ユーザや環境からのメッセージを受取りパートに送る
-    main.currentInput = {...action.message};
-    main.channel.postMessage({type: 'input', message: action.message});
+    main.currentInput = { ...action.message };
+    main.channel.postMessage({ type: 'input', message: action.message });
   },
 
   integrate: (action) => {
@@ -168,13 +169,19 @@ export const main = {
   },
 
   reply: (action) => {
-    const message = new MessageFactory(action.text, {
+    function handleShapeShift() {
+      main.worker.postMessage({ type: 'shapeShift' });
+    }
+    let text = action.text;
+    text = text.replace("{SHAPE_SHIFT}", handleShapeShift);
+
+    const message = new MessageFactory(text, {
       bot: {
         ...main.botRepr,
         avatar: action.avatar,
       },
     });
-    main.worker.postMessage({type: 'reply', message: message.toObject()});
+    main.worker.postMessage({ type: 'reply', message: message.toObject() });
   },
 
   pause: async (action) => {
@@ -182,7 +189,7 @@ export const main = {
   },
 
   kill: () => {
-    main.channel.postMessage({type: 'kill'});
+    main.channel.postMessage({ type: 'kill' });
     main.channel.close();
   },
 };
