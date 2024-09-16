@@ -367,7 +367,6 @@ export default function AuthProvider({firebase, firestore, children}) {
           avatarDir: data.avatarDir,
         })
           .then(() => {
-            dispatch({});
             // listernerでstateが書き換えられる
           })
           .catch((error) => {
@@ -392,7 +391,6 @@ export default function AuthProvider({firebase, firestore, children}) {
           avatarDir: avatarDir,
         })
           .then(() => {
-            dispatch({});
             // listernerでstateが書き換えられる
           })
           .catch((error) => {

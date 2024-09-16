@@ -79,7 +79,10 @@ export const BiomebotContext = createContext();
 const biomebotQuery = graphql`
   query {
     allFile(
-      filter: {sourceInstanceName: {eq: "botAvatar"}, ext: {eq: ".svg"}}
+      filter: {
+        sourceInstanceName: {in: ["userAvatar", "botAvatar"]}
+        ext: {eq: ".svg"}
+      }
     ) {
       nodes {
         relativeDirectory
@@ -148,7 +151,11 @@ const getShapeShifterAvatarDirs = (biomebotSnap) => {
   const snap = [];
   biomebotSnap.allFile.nodes.forEach((node) => {
     const d = node.relativeDirectory;
-    if (d.startsWith('_') && node.sourceInstanceName === 'userAvatar') {
+    if (
+      d.startsWith('_') &&
+      node.sourceInstanceName === 'userAvatar' &&
+      node.name === 'peace'
+    ) {
       snap.push(d);
     }
   });
@@ -286,6 +293,10 @@ function reducer(state, action) {
       };
     }
 
+    case 'shapeShift': {
+      return state;
+    }
+
     default:
       throw new Error(`invalid action ${action.type}`);
   }
@@ -413,6 +424,7 @@ export default function BiomebotProvider({
               const index = Math.floor(Math.random() * dirs.length);
 
               auth.shapeShift(dirs[index]);
+              console.log(dirs);
             }
           }
         };

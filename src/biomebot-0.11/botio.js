@@ -66,7 +66,7 @@ import {
   query,
   where,
 } from 'firebase/firestore';
-import {botDxIo} from './BotDxIo';
+import { botDxIo } from './BotDxIo';
 
 const RE_NON_INPUT_LINE = /^(#|with|bot|{)/;
 
@@ -185,28 +185,33 @@ async function uploadFsScheme(firestore, scheme) {
       const origin = [];
       const page0 = [];
       for (const item of data.script) {
+        if (item.text.startsWith('{')) {
+          // タグ行は飛ばす
+          continue;
+        }
+
         if (!('doc' in item)) {
-          // 初期のgraphqlから得たデータにはdoc情報がないため
+          // 初期のgraphqlから得たデータにはdoc,id情報がないため
           // 補完する
-          gqScript.push({doc: 'origin', text:item.text, id:item.id});
+          gqScript.push({ doc: 'origin', text: item.text }); // ,item:item.idを消した
         } else if (item.doc === 'origin') {
-          origin.push({doc:item.doc, text:item.text, id:item.id});
+          origin.push({ doc: item.doc, text: item.text }); // ,item:item.idを消した
         } else if (item.doc === 'page0') {
-          page0.push({doc:item.doc, text:item.text, id:item.id});
+          page0.push({ doc: item.doc, text: item.text }); // ,item:item.idを消した
         }
       }
 
       if (gqScript.length !== 0) {
         const scriptRef = doc(docRef, 'scripts', 'origin');
-        batch.set(scriptRef, {script: gqScript});
+        batch.set(scriptRef, { script: gqScript });
       }
       if (origin.length !== 0) {
         const scriptRef = doc(docRef, 'scripts', 'origin');
-        batch.set(scriptRef, {script: origin});
+        batch.set(scriptRef, { script: origin });
       }
       if (page0.length !== 0) {
         const page0Ref = doc(docRef, 'scripts', 'page0');
-        batch.set(page0Ref, {script: page0});
+        batch.set(page0Ref, { script: page0 });
       }
     }
     if ('memory' in data && data.memory) {
@@ -284,7 +289,7 @@ async function downloadFsScheme(firestore, botId) {
     const memoryRef = doc(botModulesRef, d.id, 'scripts', 'memory');
     const sq = await getDoc(scriptRef);
     const pq = await getDoc(page0Ref);
-    let scripts = sq.data();
+    let scripts = sq.data() || { script: [] };
     if (pq.exists()) {
       const ps = pq.data();
       scripts.script = scripts.script.concat(ps.script);
@@ -326,15 +331,15 @@ export function graphqlToScheme(gqSnap, schemeName, botId) {
     const script = [];
     for (const line of src) {
       if (line.match(RE_NON_INPUT_LINE)) {
-        script.push({text: line});
+        script.push({ text: line });
         continue;
       }
       const v = line.split('\t');
       if (v.length === 2) {
-        script.push({text: v[0], timestamp: new Date(Number(v[1]))});
+        script.push({ text: v[0], timestamp: new Date(Number(v[1])) });
         continue;
       }
-      script.push({text: line});
+      script.push({ text: line });
     }
     return script;
   };
@@ -380,7 +385,7 @@ export function graphqlToWordTag(gqSnap) {
     for (const token of node.values) {
       const [tag, values] = token.split(' ', 2);
       for (const w of values.split(',')) {
-        valueTagList.push({tag: tag, word: w});
+        valueTagList.push({ tag: tag, word: w });
       }
     }
   }

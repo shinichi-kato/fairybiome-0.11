@@ -171,6 +171,7 @@ export const main = {
   reply: (action) => {
     function handleShapeShift() {
       main.worker.postMessage({ type: 'shapeShift' });
+      return "";
     }
     let text = action.text;
     text = text.replace("{SHAPE_SHIFT}", handleShapeShift);

@@ -1,7 +1,7 @@
 import Dexie from 'dexie';
-import {randomInt} from 'mathjs';
+import { randomInt } from 'mathjs';
 import replaceAsync from 'string-replace-async';
-import {Dbio} from '../dbio';
+import { Dbio } from '../dbio';
 
 const RE_TAG_LINE = /^(\{[a-zA-Z0-9_]+\}) (.+)$/;
 const RE_EXPAND_TAG = /^\{([a-zA-Z_][a-zA-Z0-9_]*)\}/;
@@ -94,8 +94,8 @@ class BotDxIo extends Dbio {
         } else {
           await this.db.scripts.add({
             botModuleId: module.fsId,
-            doc: 'origin', // もとのdocが定義されていない場合'origin'
-            ...line,
+            doc: line.doc || 'origin', // もとのdocが定義されていない場合'origin'
+            text: line.text,
           });
         }
       }
@@ -141,7 +141,6 @@ class BotDxIo extends Dbio {
         snap.data.memory = await this.downloadDxMemory(botId, snap.moduleName);
       }
       scheme.botModules.push(snap);
-      console.log(snap.data.updatedAt)
       if (toString.call(snap.data.updatedAt) !== '[object Date]') {
         snap.data.updatedAt = new Date(snap.data.updatedAt.seconds * 1000);
       }
@@ -182,15 +181,15 @@ class BotDxIo extends Dbio {
     if (schemeName) {
       for (const snap of snaps) {
         if (snap.data.schemeName === schemeName) {
-          return {botId: snap.data.botId, schemeName: schemeName};
+          return { botId: snap.data.botId, schemeName: schemeName };
         }
       }
       return null;
     } else {
       for (const snap of snaps) {
-        return {botId: snap.data.botId, schemeName: snap.data.schemeName};
+        return { botId: snap.data.botId, schemeName: snap.data.schemeName };
       }
-      return {botId: null, schemeName: null};
+      return { botId: null, schemeName: null };
     }
   }
 
@@ -381,7 +380,7 @@ class BotDxIo extends Dbio {
           .where(['botId', 'moduleName', 'key'])
           .equals([botId, 'main', key])
           .first();
-        return {key: key, value: snap ? 1 : 0};
+        return { key: key, value: snap ? 1 : 0 };
       })
     );
   }
@@ -411,7 +410,7 @@ class BotDxIo extends Dbio {
       const node = await this.db.wordTag.where('word').equals(w).first();
       if (node) {
         console.warning('wordTag duplicated, overwrited', node);
-        await this.db.wordTag.update(node.id, {word: w, tag: item.tag});
+        await this.db.wordTag.update(node.id, { word: w, tag: item.tag });
       } else {
         await this.db.wordTag.add({
           tag: item.tag,
