@@ -10,11 +10,11 @@ AuthProvider
   disconnected            NG -- --  firebase接続に失敗した
   connected               G  -- --  firebaseに接続した
   ↓
-  SignDialog:open          G  NG --  サインアウト状態          authStateChange
+  SignDialog:open         G  NG --  サインアウト状態          authStateChange
   signedIn                G  G  --  サインインに成功した      authStateChange
   SignDialog:waiting                     処理まち
   ↓
-  UserSettingsDialog:open  G  G  NG  ユーザ設定が存在しない    userPropChange
+  UserSettingsDialog:open G  G  NG  ユーザ設定が存在しない    userPropChange
   waitingSetting                    処理まち
   ready                   G  G  G   a,u,pが揃っている         userPropChange
   ----------------------------------------------------------------------------
@@ -339,6 +339,10 @@ export default function AuthProvider({firebase, firestore, children}) {
     // onAuthStateChangeがトリガされる
   }
 
+  function handleOpenUserProps() {
+    dispatch({type: 'UserSettingsDialog:open'});
+  }
+
   // -----------------------------------------------------------
   //
   //  ユーザ情報の更新
@@ -416,6 +420,7 @@ export default function AuthProvider({firebase, firestore, children}) {
         uid: state.user?.uid,
         handleSignOut: handleSignOut,
         shapeShift: handleShapeShift,
+        handleOpenUserProps: handleOpenUserProps,
       }}
     >
       {as === 'ready' ? (

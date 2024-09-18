@@ -4,7 +4,7 @@ import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
 import IconButton from '@mui/material/IconButton';
-import ArrowBackIcon from '@mui/icons-material/ArrowBackIos';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import SendIcon from '@mui/icons-material/Send';
 import InputBase from '@mui/material/InputBase';
 
@@ -35,7 +35,7 @@ export default function ConsoleBar({
     <AppBar position='static'>
       <Toolbar>
         <IconButton onClick={handleOpenMenu} edge='start' color='inherit'>
-          <ArrowBackIcon />
+          <MoreVertIcon />
         </IconButton>
         <Box
           sx={{

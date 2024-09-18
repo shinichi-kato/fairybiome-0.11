@@ -30,8 +30,8 @@ export default function ChatRoom({firestore}) {
     setText(e.target.value);
   };
 
-  const handleToBack = () => {
-    // navigate
+  const handleOpenMenu = () => {
+    auth.handleOpenUserProps();
   };
 
   const handleSend = () => {
@@ -55,7 +55,7 @@ export default function ChatRoom({firestore}) {
           <ConsoleBar
             text={text}
             handleChangeText={handleChangeText}
-            handleToBack={handleToBack}
+            handleOpenMenu={handleOpenMenu}
             handleSend={handleSend}
           />
         </Box>
@@ -67,7 +67,7 @@ export default function ChatRoom({firestore}) {
             flexGrow: 1,
           }}
         >
-          <LogView firestore={firestore} uid={auth.uid} botRepr={bot.botRepr}/>
+          <LogView firestore={firestore} uid={auth.uid} botRepr={bot.botRepr} />
         </Box>
         <Box
           sx={{

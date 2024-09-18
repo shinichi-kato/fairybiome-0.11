@@ -133,6 +133,19 @@ export async function findDefaultBotId(userId, schemeName, chatbotSnap) {
  * @return {Array} 動悸したbotを構成するbotModule名のリスト
  */
 export async function syncCache(firestore, graphqlSnap, schemeName, botId) {
+  /*
+    初期状態ではgqSchemeだけが存在し、それをfsSchemeにアップロードする。
+    アップロード時にfsIdが取得できるためそれをschemeに書き戻し、さらに
+    dxにfsId付きでアップロードする。
+
+    gqSchemeが最新だがfsが存在する場合、schemeNameとmoduleNameを
+    キーとしてfsIdは温存したままgqSchemeの内容を上書きする。新しい
+    moduleには新しいfsIdを付与する。その結果得られたschemeでdxは
+    上書きする。
+
+    fsまたはdxが最新の場合、新しい方で古い方を更新する。このときも
+    schemNameとmoduleNameをキーとし、fsIdは温存する。
+  */
   // token用タグを読み込み記憶する
   const wordToTag = graphqlToWordTag(graphqlSnap.token);
   await botDxIo.uploadDxWordToTagList(wordToTag);
@@ -152,16 +165,15 @@ export async function syncCache(firestore, graphqlSnap, schemeName, botId) {
 
   if (fsud < gqud && dxud < gqud) {
     // gqが最新：初期化
-    await uploadFsScheme(firestore, gqScheme);
-    // fsIdをdxに渡すため最新情報をfsからダウンロード
-    const fss = await downloadFsScheme(firestore, botId);
+    // uploadFsSchemeの 戻り値にfsIdが格納される
+    const fss = await uploadFsScheme(firestore, gqScheme, fsScheme);
     await botDxIo.uploadDxScheme(fss, botId);
   } else {
     // gqが最新ではない→fsとdxの間で同期
     if (fsud > dxud) {
       await botDxIo.uploadDxScheme(fsScheme, botId);
     } else if (dxud > fsud) {
-      await uploadFsScheme(firestore, dxScheme);
+      await uploadFsScheme(firestore, dxScheme, fsScheme);
     }
     // dxud === fsudの場合書き込みしない
   }
@@ -174,9 +186,36 @@ export async function syncCache(firestore, graphqlSnap, schemeName, botId) {
  * schemeのfsIdが未定義の場合、アップロード後にschemeのfsIdを書き換える
  * @param {Object} firestore firestoreオブジェクト
  * @param {Ojbect} scheme scheme形式のbotデータ
+ * @param {Object} fsScheme fsに既存のデータ
  */
-async function uploadFsScheme(firestore, scheme) {
+async function uploadFsScheme(firestore, scheme, fsScheme) {
+  /*
+    moduleName, schemeNameをキーとして上書きを試みる。
+    存在しない場合は新規に作成し、schemeのfsIdを書き換える。
+
+    scheme: {
+      updatedAt: date(),
+      botModules:[
+      {
+        fsId:"wj0ud4kve8pB"
+        data: {
+          botId:"fairyGirlCYiv4PyhJDVxUga3GYL3LQTfv2I3",
+          mainFsId: "kNW7SZbz9BemknchRbHY",
+          memory: {}
+          moduleName :"dream"
+          schemeName: "fairyGirl"
+          script: 
+          [{…}, {…}, {…}, ...] 
+          updatedAt:Sat Jun 01 2024 15:04:05 GMT+0900 (日本標準時)
+        }
+      }
+  */
+
+
   const batch = writeBatch(firestore);
+
+
+
 
   const writeScript = (data, docRef) => {
     if ('script' in data) {
@@ -220,50 +259,68 @@ async function uploadFsScheme(firestore, scheme) {
     }
   };
 
-  // main moduleのscriptは各partでも読み込むため、はじめに
-  // mainを探してuploadし、他にfsIdを渡す
-  let main;
-  for (main of scheme.botModules) {
-    if (main.data.moduleName === 'main') {
-      let docRef;
-      if ('fsId' in main) {
-        docRef = doc(firestore, 'botModules', main.fsId);
-      } else {
-        docRef = doc(collection(firestore, 'botModules'));
+  if (fsScheme.botModules.length === 0) {
+    // fsSchemeが空の場合アップロードしてfsIdを書き戻す
+    // 最初にmainを書き込む
+    let main;
+    for (main of scheme.botModules) {
+      if (main.data.moduleName === 'main') {
+        const docRef = doc(collection(firestore, 'botModules'));
         main.fsId = docRef.id;
+        batch.set(docRef, {
+          ...main.data,
+          script: 'on scirpts/origin',
+          memory: 'on scripts/memory',
+        });
+        writeScript(main.data, docRef);
+        break;
       }
-      batch.set(docRef, {
-        ...main.data,
-        script: 'on scripts/origin',
-        memory: 'on scripts/memory',
-      });
-
-      // scriptはscriptサブコレクションの'origin'というdocに
-      // 格納。ユーザによる追記とdocを分ける
-      writeScript(main.data, docRef);
-      break;
     }
-  }
-
-  for (const module of scheme.botModules) {
-    if (module.data.moduleName !== 'main') {
-      let docRef;
-      if ('fsId' in module) {
-        docRef = doc(firestore, 'botModules', module.fsId);
-      } else {
-        docRef = doc(collection(firestore, 'botModules'));
+    for (const module of scheme.botModules) {
+      if (module.data.moduleName !== 'main') {
+        const docRef = doc(collection(firestore, 'botModules'));
         module.fsId = docRef.id;
+        batch.set(docRef, {
+          ...module.data,
+          memory: 'on scripts/memory',
+          script: 'on scripts/origin',
+          mainFsId: main.fsId,
+        });
+        writeScript(module.data, docRef);
       }
+    }
+  } else {
+    // fsSchemeが空でない場合、ModuleNameをキーに上書き
+    const moduleNameToFsId = getModuleNameToFsId(fsScheme);
+
+    for (const module of scheme.botModules) {
+      let fsId = moduleNameToFsId[module.data.moduleName];
+      if (!fsId) {
+        console.log(`new botModule on firestore generated for ${module.data.moduleName}`);
+      }
+      const docRef = fsId ?
+        doc(firestore, 'botModules', fsId)
+        : doc(collection(firestore, 'botModules'));
       batch.set(docRef, {
         ...module.data,
         memory: 'on scripts/memory',
         script: 'on scripts/origin',
-        mainFsId: main.fsId,
       });
       writeScript(module.data, docRef);
     }
+
   }
   await batch.commit();
+
+  return scheme
+}
+
+function getModuleNameToFsId(fsScheme) {
+  const map = {};
+  for (const module of fsScheme.botModules) {
+    map[module.data.moduleName] = module.fsId
+  }
+  return map;
 }
 
 /**
@@ -358,7 +415,7 @@ export function graphqlToScheme(gqSnap, schemeName, botId) {
         scheme.updatedAt = s.updatedAt;
       }
       scheme.botModules.push({
-        id: null,
+        fsId: null,
         data: {
           ...s,
           script: parseScript(s.script),
