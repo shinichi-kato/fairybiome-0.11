@@ -18,7 +18,7 @@ const initialState = {
 };
 
 function reducer(state, action) {
-  console.log('UserSettingsDialog', action);
+  // console.log('UserSettingsDialog', action);
   switch (action.type) {
     case 'changeUserProps': {
       return {

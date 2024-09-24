@@ -102,10 +102,18 @@ function reducer(state, action) {
     case 'authStateChange': {
       const u = action.user;
       if (u) {
+        if (state.userProps.avatarDir !== '') {
+          return {
+            ...state,
+            user: u,
+            authState: 'signedIn',
+            error: null,
+          };
+        }
         return {
           ...state,
           user: u,
-          authState: 'signedIn',
+          authState: 'UserSettingsDialog:open',
           error: null,
         };
       } else {
@@ -262,11 +270,12 @@ export default function AuthProvider({firebase, firestore, children}) {
                 type: 'userPropsChange',
                 userProps: data,
               });
-            } else {
-              dispatch({
-                type: 'close',
-              });
             }
+            // else {
+            //   dispatch({
+            //     type: 'close',
+            //   });
+            // }
           }
         },
         (error) => {

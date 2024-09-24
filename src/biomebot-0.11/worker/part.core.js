@@ -137,7 +137,7 @@ export const part = {
       text: part._standardize(m.text),
       displayName: m.displayName,
     };
-    console.log(part.latestInput);
+    // console.log(part.latestInput);
     const retr = await retrieve(m, part.source, part.botId, part.noder);
 
     part.channel.postMessage({
