@@ -1,8 +1,8 @@
 import replaceAsync from 'string-replace-async';
 
-import {botDxIo} from '../BotDxIo';
-import {Noder} from './noder';
-import {retrieve} from './retrieve';
+import { botDxIo } from '../BotDxIo';
+import { Noder } from './noder';
+import { retrieve } from './retrieve';
 import * as matrix from './matrix';
 
 const RE_COND_TAG = /\{([+-])([a-zA-Z_][a-zA-Z_0-9]*)\}/g;
@@ -16,11 +16,11 @@ export const part = {
   channel: new BroadcastChannel('biomebot'),
   activationLevel: 0,
   source: {},
-  latestInput: {avatar: '', text: '', displayName: ''},
-  latestOutput: {avatar: '', text: '', displayName: ''},
+  latestInput: { avatar: '', text: '', displayName: '' },
+  latestOutput: { avatar: '', text: '', displayName: '' },
 
   deploy: async (action) => {
-    const {botId, moduleName, validAvatars} = action;
+    const { botId, moduleName, validAvatars } = action;
     const p = await botDxIo.downloadDxModule(botId, moduleName);
     part.botId = botId;
     part.moduleId = p.fsId;
@@ -207,6 +207,8 @@ export const part = {
     // ユーザ名を復号化
     text = text.replaceAll('{user}', part.latestInput.displayName);
 
+    // システムタグ
+
     part.channel.postMessage({
       type: 'reply',
       moduleName: part.moduleName,
@@ -255,7 +257,7 @@ export const part = {
         const value = [node.surface.split(m[2])];
         console.log('spotted', key, '=', value);
         // スポットされた例がない・・・
-        await botDxIo.updateTagValue(key, value, part.botId, {overwrite: true});
+        await botDxIo.updateTagValue(key, value, part.botId, { overwrite: true });
       }
     }
   },

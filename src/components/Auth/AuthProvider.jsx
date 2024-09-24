@@ -138,6 +138,14 @@ function reducer(state, action) {
       }
     }
 
+    case 'close': {
+      return {
+        ...state,
+        authState: 'ready',
+        error: null,
+      };
+    }
+
     case 'SignDialog:open': {
       return {
         ...state,
@@ -254,6 +262,10 @@ export default function AuthProvider({firebase, firestore, children}) {
                 type: 'userPropsChange',
                 userProps: data,
               });
+            } else {
+              dispatch({
+                type: 'close',
+              });
             }
           }
         },
@@ -341,6 +353,10 @@ export default function AuthProvider({firebase, firestore, children}) {
 
   function handleOpenUserProps() {
     dispatch({type: 'UserSettingsDialog:open'});
+  }
+
+  function handleClose() {
+    dispatch({type: 'close'});
   }
 
   // -----------------------------------------------------------
@@ -437,6 +453,7 @@ export default function AuthProvider({firebase, firestore, children}) {
           authState={state}
           handleSignOut={handleSignOut}
           handleChangeUserSettings={handleChangeUserSettings}
+          handleClose={handleClose}
         />
       ) : (
         <Landing authState={state} />

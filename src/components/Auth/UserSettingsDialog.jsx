@@ -18,7 +18,7 @@ const initialState = {
 };
 
 function reducer(state, action) {
-  // console.log("UserSettingsDialog", action)
+  console.log('UserSettingsDialog', action);
   switch (action.type) {
     case 'changeUserProps': {
       return {
@@ -57,6 +57,7 @@ export default function UserSettingsDialog({
   authState,
   handleChangeUserSettings,
   handleSignOut,
+  handleClose,
 }) {
   const {user, userProps, errorCode} = authState;
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -113,6 +114,11 @@ export default function UserSettingsDialog({
       avatarDir: state.avatarDir,
       backgroundColor: state.backgroundColor,
     });
+  }
+
+  function handleCancel(e) {
+    e.preventDefault();
+    handleClose();
   }
 
   return (
@@ -198,6 +204,9 @@ export default function UserSettingsDialog({
         <Box sx={{p: 1}}>
           <Button variant='text' size='small' onClick={handleSignOut}>
             サインアウト
+          </Button>
+          <Button variant='text' size='small' onClick={handleCancel}>
+            キャンセル
           </Button>
         </Box>
       </Box>

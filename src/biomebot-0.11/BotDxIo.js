@@ -4,7 +4,7 @@ import replaceAsync from 'string-replace-async';
 import { Dbio } from '../dbio';
 
 const RE_TAG_LINE = /^(\{[a-zA-Z0-9_]+\}) (.+)$/;
-const RE_EXPAND_TAG = /^\{([a-zA-Z_][a-zA-Z0-9_]*)\}/;
+const RE_EXPAND_TAG = /\{([a-zA-Z_][a-zA-Z0-9_]*)\}/;
 const RE_WORD_TAG = /\{([0-9]+)\}/;
 const LI_LOWERCASE = 'abcdefghijklmnopqrstuvwxyz'.split('');
 
@@ -269,7 +269,7 @@ class BotDxIo extends Dbio {
      * @param {String} tag タグ文字列
      * @return {String} 展開後の文字列
      */
-    async function expand(tag) {
+    async function _expand(tag) {
       let snap = await db.memory
         .where(['botId', 'moduleName', 'key'])
         .equals([botId, moduleName, tag])
@@ -290,7 +290,7 @@ class BotDxIo extends Dbio {
       const value = snap.value[randomInt(snap.value.length)];
 
       // タグが見つかったら再帰的に展開する
-      return replaceAsync(value, RE_EXPAND_TAG, expand);
+      return replaceAsync(value, RE_EXPAND_TAG, _expand);
     }
 
     const values = await this.readTag(key, botId, moduleName);
@@ -298,7 +298,7 @@ class BotDxIo extends Dbio {
     const value = values[randomInt(values.length)];
 
     // タグが見つかったら展開する
-    return await replaceAsync(value, RE_EXPAND_TAG, expand);
+    return await replaceAsync(value, RE_EXPAND_TAG, _expand);
   }
 
   /**
@@ -391,6 +391,8 @@ class BotDxIo extends Dbio {
    */
   async clearSessionTags(botId) {
     await this.db.memory
+      .where(['botId', 'moduleName', 'key'])
+      .between([botId, Dexie.minKey, Dexie.minKey], [botId, Dexie.maxKey, Dexie.maxKey])
       .filter((mem) => mem.key.startsWith(LI_LOWERCASE))
       .delete();
   }
