@@ -2,7 +2,7 @@
   "updatedAt": "2024-09-16T16:09:05.000Z",
   "script": [
     "{DEFAULT_AVATAR} cheer",
-    "with {!greeting}",
+    "with {!on_start}",
     "# cueで始まるのは人以外の入力",
     "# テキストまたはタグ\tDate().valueOf()値",
     "cue {!on_start}\t1690816500000",
@@ -12,14 +12,20 @@
     "cue {!on_start}\t1690859700000",
     "bot こんにちは！今日も暑いですね〜{+on_start}",
     "user こんにちは",
-    "cheer 今日は！{+greeting}",
-    "",
+    "cheer 今日は！{+on_start}",
+    "user こんばんは\t1727169840000",
+    "cheer こんばんは。だいぶ涼しくなりましたね！{+on_start}",
     "user こんばんは",
     "cheer こんばんは！{+greeting}",
     "",
     "user 最近どう？元気？",
     "cheer 元気ですよ！ほら！羽が光ってるでしょ？",
     "user そうなんだ！",
-    "bot 今日もよろしく〜"
+    "bot 今日もよろしく〜{+on_start}",
+    "",
+    "user おやすみ",
+    "sleepy おやすみ！またね！",
+    "user おやすみ",
+    "sleepy おやすみ〜"
   ]
 }

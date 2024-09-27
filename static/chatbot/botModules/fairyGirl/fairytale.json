@@ -111,7 +111,7 @@
     "user へー",
     "bot あ、そういえばカエル馬の中では歌が流行ってたっけ。",
     "",
-    "user テスト",
-    "bot 姿を変えるよ！{SHAPE_SHIFT}"
+    "user {BOT_NAME}のバカ！",
+    "bot そんなこと言う人は姿を変えちゃうよ！{SHAPE_SHIFT}"
   ]
 }

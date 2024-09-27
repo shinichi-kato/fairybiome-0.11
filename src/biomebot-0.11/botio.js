@@ -173,6 +173,9 @@ export async function syncCache(firestore, graphqlSnap, schemeName, botId) {
     if (fsud > dxud) {
       await botDxIo.uploadDxScheme(fsScheme, botId);
     } else if (dxud > fsud) {
+      // ↑if (dxud-fsud >86400000) とすれば一日上間隔が開かないと更新されない
+      // それによりfsへのアクセス頻度を下げられる
+
       await uploadFsScheme(firestore, dxScheme, fsScheme);
     }
     // dxud === fsudの場合書き込みしない
@@ -211,11 +214,7 @@ async function uploadFsScheme(firestore, scheme, fsScheme) {
       }
   */
 
-
   const batch = writeBatch(firestore);
-
-
-
 
   const writeScript = (data, docRef) => {
     if ('script' in data) {
