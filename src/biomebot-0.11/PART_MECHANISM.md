@@ -335,6 +335,7 @@ peace ボットの返答(先頭が有効なavatar名の場合そのavatarが表�
 * wordタグへの置き換え、戻しが動作しているか
 * firestoreへの書き戻しが動作しているか
 * スクリプトのダウンロード/アップロード画面
+* bot行の連続をqueueにする
 
 ## BUG
 * firestore上でscriptsのpage0データがoriginに格納されてしまう
