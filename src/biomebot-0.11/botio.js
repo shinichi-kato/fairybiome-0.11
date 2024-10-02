@@ -258,6 +258,7 @@ async function uploadFsScheme(firestore, scheme, fsScheme) {
     }
   };
 
+
   if (fsScheme.botModules.length === 0) {
     // fsSchemeが空の場合アップロードしてfsIdを書き戻す
     // 最初にmainを書き込む
@@ -289,13 +290,14 @@ async function uploadFsScheme(firestore, scheme, fsScheme) {
       }
     }
   } else {
-    // fsSchemeが空でない場合、ModuleNameをキーに上書き
+    // fsSchemeが空でない場合、ModuleNameをキーに上書き。
     const moduleNameToFsId = getModuleNameToFsId(fsScheme);
 
     for (const module of scheme.botModules) {
-      let fsId = moduleNameToFsId[module.data.moduleName];
+      const modName = module.data.moduleName;
+      let fsId = moduleNameToFsId[modName];
       if (!fsId) {
-        console.log(`new botModule on firestore generated for ${module.data.moduleName}`);
+        console.log(`new botModule on firestore generated for ${modName}`);
       }
       const docRef = fsId ?
         doc(firestore, 'botModules', fsId)
@@ -306,6 +308,14 @@ async function uploadFsScheme(firestore, scheme, fsScheme) {
         script: 'on scripts/origin',
       });
       writeScript(module.data, docRef);
+
+      delete moduleNameToFsId[modName]
+
+    }
+    // schemeに存在しないbotModule が残っていたら削除
+    for (const remained of Object.keys(moduleNameToFsId)) {
+      console.warn(`${remained}をfirestoreから削除します`)
+      batch.delete(doc(firestore, 'botModules', remained));
     }
 
   }

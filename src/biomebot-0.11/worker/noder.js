@@ -60,9 +60,9 @@ tokenに格納する。なお、「お兄さんは」の接頭語「お」、接
 
 */
 
-import {TinySegmenter} from './tinysegmenter';
+import { TinySegmenter } from './tinysegmenter';
 
-import {botDxIo} from '../BotDxIo';
+import { botDxIo } from '../BotDxIo';
 
 const RE_TAG = /\{(\?|\?!|!|\+|-|)[a-zA-Z_][a-zA-Z_0-9]*\}/g;
 const POST_PA = {
@@ -137,7 +137,7 @@ export class Noder {
     const namesList = await Promise.all(tags.map(readTag1));
     for (let i = 0; i < namesList.length; i++) {
       for (const name of namesList[i]) {
-        this.nameToTags.push({tag: tags[i], name: name});
+        this.nameToTags.push({ tag: tags[i], name: name });
       }
     }
     this.nameToTags = this.nameToTags.sort(
@@ -160,22 +160,22 @@ export class Noder {
     // text中の条件タグと通常のタグはそのまま透過する。
     // replaceする際に多重replaceが起きるのを防ぐため、一旦\v{i}\vに置換
     text = text.replace(RE_TAG, (match) => {
-      tagDict[i] = {surf: match, feat: match};
+      tagDict[i] = { surf: match, feat: match };
       return `\v${i++}\v`;
     });
 
     // text中の固有名詞はタグ化する。
-    for (const {tag, name} of this.nameToTags) {
+    for (const { tag, name } of this.nameToTags) {
       if (text.indexOf(name) !== -1) {
-        tagDict[i] = {surf: name, feat: tag};
+        tagDict[i] = { surf: name, feat: tag };
         text = text.replaceAll(name, `\v${i++}\v`);
       }
     }
 
     // text中のシステムタグ類はタグ化する
-    for (const {tag, word} of this.wordToTags) {
+    for (const { tag, word } of this.wordToTags) {
       if (text.indexOf(word) !== -1) {
-        tagDict[i] = {surf: word, feat: tag};
+        tagDict[i] = { surf: word, feat: tag };
         text = text.replaceAll(word, `\v${i++}\v`);
       }
     }
@@ -186,11 +186,19 @@ export class Noder {
     // タグをfeatにセット
     let phase = 0;
     for (const seg of segments) {
-      if (phase === 0 && seg === '\v') {
-        phase = 1;
-        continue;
+      if (phase === 0) {
+        if (seg === '\v') {
+          phase = 1;
+          continue;
+        } else if (seg === '？\v') {
+          // tinesegmenterで予期せぬsegが作られる。
+          // そのパッチ的対策
+          nodes.push(new Node('？', '？'));
+          phase = 1;
+          continue;
+        }
       } else if (phase === 1) {
-        // console.error(seg)
+        console.error(segments)
         const t = tagDict[seg];
         nodes.push(new Node(t.surf, t.feat));
         phase = 2;

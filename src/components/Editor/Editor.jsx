@@ -10,8 +10,10 @@ export default function Editor() {
     firestoreとdexieの両方にあるが、このeditorではsyncしているものとして
     dexie上のデータのダウンロード/アップロードを行う。
     dexie上のスクリプトではoriginはgraphql由来、page0〜は
-    会話から学習した内容になっている。editorでは全データをダウンロードでき、
-    アップロードする際はorigin部分は無視される。
+    会話から学習した内容になっている。editorでは全データをダウンロードし、
+    originとpageを区別して表示する。
+    ダウンロード及びアップロードが可能なのはpage部分のみである。
+    このバージョンでは画面上での編集には対応しない。
 
   
   */

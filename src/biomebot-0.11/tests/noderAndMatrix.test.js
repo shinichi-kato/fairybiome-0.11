@@ -1,15 +1,15 @@
 import 'fake-indexeddb/auto';
-import {describe, expect, it} from 'vitest';
-import {botDxIo} from '../BotDxIo';
-import {Noder} from '../worker/noder';
+import { describe, expect, it } from 'vitest';
+import { botDxIo } from '../BotDxIo';
+import { Noder } from '../worker/noder';
 import systemTag from '../../../static/chatbot/token/system.json';
-import personTag from '../../../static/chatbot/token/person.json';
+import personTag from '../../../static/chatbot/token/0000person.json';
 import scriptJson from '../../../static/chatbot/botModules/fairyGirl/main.json';
 import greetingScript from '../../../static/chatbot/botModules/fairyGirl/greeting.json';
-import {graphqlToWordTag} from '../botio';
-import {preprocess, tee, matrixize} from '../worker/matrix';
-import {retrieve} from '../worker/retrieve';
-import {MessageFactory} from '../../message';
+import { graphqlToScheme, graphqlToWordTag } from '../botio';
+import { preprocess, tee, matrixize } from '../worker/matrix';
+import { retrieve } from '../worker/retrieve';
+import { MessageFactory } from '../../message';
 
 describe('Noder&matrix', () => {
   const botId = 'user00Test01';
@@ -50,7 +50,7 @@ describe('Noder&matrix', () => {
   it('Noder', async () => {
     await noder.loadTags();
 
-    expect(noder.wordToTags.length).toBe(109);
+    expect(noder.wordToTags.length).toBe(114);
     expect(noder.nameToTags.length).toBe(1);
 
     const nodes = noder.nodify(
@@ -86,7 +86,7 @@ describe('Noder&matrix', () => {
 
   let source;
   it('matrix-matrixize', () => {
-    const params = {tailing: 0.7, condWeight: 1.2, timeWeight: 0.8};
+    const params = { tailing: 0.7, condWeight: 1.2, timeWeight: 0.8 };
     source = matrixize(script3.inScript, params, noder);
     console.log('cMatrix', source.condMatrix);
   });
@@ -103,7 +103,8 @@ describe('Noder&matrix', () => {
       avatar: 'avatar',
       displayName: '名前',
     };
-    const msg = new MessageFactory('{!on_start}', {user: user});
+    const msg = new MessageFactory('{!on_start}', { user: user });
+    console.log(source)
 
     const retrieved = await retrieve(msg, source, botId, noder);
     console.log('retrieved', retrieved);
