@@ -223,6 +223,7 @@ export const part = {
 
   _calc_matrix: async () => {
     // scriptをDBから取得。形式は[{test,timestamp}]
+    console.log(part)
     const script = await botDxIo.downloadDxScript(part.moduleId);
     const stage1 = matrix.preprocess(
       script,

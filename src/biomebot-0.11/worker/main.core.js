@@ -73,8 +73,10 @@ export const main = {
     // {BOT_NAME}チェック
 
     main.botName = await botDxIo.decodeTag('{BOT_NAME}', botId);
+    console.log(main.botName)
     if (main.botName === 'undefined') {
       main.botName = await botDxIo.decodeTag('{BOT_NAME_GENERATOR}', botId);
+      console.log(main.botName)
 
       await botDxIo.updateTagValue('{BOT_NAME}', main.botName, botId, {
         overwrite: true,

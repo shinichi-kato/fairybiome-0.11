@@ -214,6 +214,8 @@ async function uploadFsScheme(firestore, scheme, fsScheme) {
       }
   */
 
+  console.log(scheme)
+
   const batch = writeBatch(firestore);
 
   const writeScript = (data, docRef) => {
@@ -258,6 +260,12 @@ async function uploadFsScheme(firestore, scheme, fsScheme) {
     }
   };
 
+  // fsSchemeが空の場合新しくfsIdsを生成する。
+  // fsSchemeが存在する場合、同一moduleNameのIdはfsScheme上の
+  // fsIdを利用する。
+  // mainのfsIdを他のmoduleのmainFsIdとして記憶する。
+
+
 
   if (fsScheme.botModules.length === 0) {
     // fsSchemeが空の場合アップロードしてfsIdを書き戻す
@@ -292,6 +300,7 @@ async function uploadFsScheme(firestore, scheme, fsScheme) {
   } else {
     // fsSchemeが空でない場合、ModuleNameをキーに上書き。
     const moduleNameToFsId = getModuleNameToFsId(fsScheme);
+    const mainFsId = moduleNameToFsId["main"];
 
     for (const module of scheme.botModules) {
       const modName = module.data.moduleName;
@@ -302,10 +311,12 @@ async function uploadFsScheme(firestore, scheme, fsScheme) {
       const docRef = fsId ?
         doc(firestore, 'botModules', fsId)
         : doc(collection(firestore, 'botModules'));
+      module.fsId = fsId;
       batch.set(docRef, {
         ...module.data,
         memory: 'on scripts/memory',
         script: 'on scripts/origin',
+        mainFsId: mainFsId
       });
       writeScript(module.data, docRef);
 
@@ -449,9 +460,11 @@ export function graphqlToWordTag(gqSnap) {
   for (const node of gqSnap) {
     // 取れてないtokenファイルがある
     for (const token of node.values) {
-      const [tag, values] = token.split(' ', 2);
+      const pos = token.indexOf(" ");
+      const tag = token.slice(0, pos);
+      const values = token.slice(pos + 1);
       for (const w of values.split(',')) {
-        valueTagList.push({ tag: tag, word: w });
+        valueTagList.push({ tag: tag, word: w.trim() });
       }
     }
   }

@@ -60,11 +60,11 @@ tokenに格納する。なお、「お兄さんは」の接頭語「お」、接
 
 */
 
-import {useEffect, useCallback, useRef, useState} from 'gatsby';
-import {useStaticQuery, graphql} from 'gatsby';
-import {TinySegmenter} from './worker/tinysegmenter';
+import { useEffect, useCallback, useRef, useState } from 'gatsby';
+import { useStaticQuery, graphql } from 'gatsby';
+import { TinySegmenter } from './worker/tinysegmenter';
 
-import {readTag} from './BotDxIo';
+import { readTag } from './BotDxIo';
 
 const RE_TAG = /\{(\?|\?!|\+|-|)[a-zA-Z_][a-zA-Z_0-9]*\}/g;
 
@@ -100,9 +100,11 @@ const getValueTagList = (snap) => {
   const valueTagList = [];
   for (const node of snap.data.allJson.nodes) {
     const tokens = node.token.values;
-    const [tag, values] = tokens.split(' ', 1);
+    const pos = tokens.indexOf(' ');
+    const tag = tokens.slice(0, pos);
+    const values = tokens.slice(pos + 1);
     for (const v of values.split(',')) {
-      valueTagList.push([tag, v]);
+      valueTagList.push([tag, v.trim()]);
     }
   }
   return valueTagList;
@@ -158,14 +160,14 @@ export default function useNoder(uid, botId) {
       // text中の条件タグと通常のタグはそのまま透過する。
       // replaceする際に多重replaceが起きるのを防ぐため、一旦\v{i}\vに置換
       text = text.replace(RE_TAG, (match) => {
-        tagDict[i] = {surf: match, feat: match};
+        tagDict[i] = { surf: match, feat: match };
         return `\v${i++}\v`;
       });
 
       // text中の固有名詞はタグ化する。
       for (const [tag, val] of tagToNameList) {
         if (text.indexOf(val) !== -1) {
-          tagDict[i] = {surf: tag, feat: val};
+          tagDict[i] = { surf: tag, feat: val };
           text = text.replace(val, `\v${i++}\v`);
         }
       }
@@ -173,7 +175,7 @@ export default function useNoder(uid, botId) {
       // text中のシステムタグ類はタグ化する
       for (const [tag, val] of wordToTagListRef.current) {
         if (text.indexOf(val) !== -1) {
-          tagDict[i] = {surf: tag, feat: val};
+          tagDict[i] = { surf: tag, feat: val };
           text = text.replace(val, `\v${i++}\v`);
         }
       }

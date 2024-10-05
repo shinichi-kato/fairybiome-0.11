@@ -51,7 +51,7 @@ import {
   norm,
 } from 'mathjs';
 
-import {time2yearRad, time2dateRad} from '../../components/Ecosystem/dayCycle';
+import { time2yearRad, time2dateRad } from '../../components/Ecosystem/dayCycle';
 
 const RE_BLANK_LINE = /^\s*$/;
 const KIND_USER = 1;
@@ -106,7 +106,7 @@ export function matrixize(inScript, params, noder) {
   similarity=(wordVector, tsWeight*cosθ, condWeight*condVector)
 
    */
-  const {tailing, condWeight, timeWeight} = params;
+  const { tailing, condWeight, timeWeight } = params;
   let m;
   let i;
   const condVocab = {}; // 条件タグのvocab
@@ -356,7 +356,10 @@ export function preprocess(script, validAvatars, defaultAvatar) {
       head = line.head;
       text = line.text;
     } else if (line.text !== '') {
-      [head, text] = line.text.split(' ', 2);
+      console.log(line)
+      const pos = line.text.indexOf(' ');
+      head = line.text.slice(0, pos);
+      text = line.text.slice(pos + 1);
     }
 
     if ('timestamp' in line) {
@@ -458,7 +461,7 @@ export function preprocess(script, validAvatars, defaultAvatar) {
       prevKind = KIND_BOT;
       continue;
     }
-    errors.push(`${i}行目:${script[i]}は正常ではありません`);
+    errors.push(`${i}行目:${head} ${text} ${timestamp}は正常ではありません`);
   }
 
   if (block.length !== 0) {

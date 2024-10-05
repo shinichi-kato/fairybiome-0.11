@@ -81,9 +81,11 @@ class BotDxIo extends Dbio {
         .equals([module.fsId, 'origin'])
         .delete();
       this.db.memory.where('botId').equals(module.fsId).delete();
+      console.log(module)
       for (const line of module.data.script) {
         const m = line.text.match(RE_TAG_LINE);
         if (m) {
+          console.log(m)
           await this.db.memory.put({
             botId: module.data.botId,
             moduleName: module.data.moduleName,
@@ -199,6 +201,7 @@ class BotDxIo extends Dbio {
    * @return {array} スクリプト[{text,timestamp}]形式
    */
   async downloadDxScript(moduleId) {
+    console.log(moduleId)
     return await this.db.scripts
       .where('[botModuleId+doc]')
       .between([moduleId, Dexie.minKey], [moduleId, Dexie.maxKey])
@@ -293,12 +296,16 @@ class BotDxIo extends Dbio {
       return replaceAsync(value, RE_EXPAND_TAG, _expand);
     }
 
-    const values = await this.readTag(key, botId, moduleName);
+    const values = await this.readTag(key, botId, null, moduleName);
     // 候補の中から一つを選ぶ
-    const value = values[randomInt(values.length)];
+    if (values) {
+      const value = values[randomInt(values.length)];
 
-    // タグが見つかったら展開する
-    return await replaceAsync(value, RE_EXPAND_TAG, _expand);
+      // タグが見つかったら展開する
+      return await replaceAsync(value, RE_EXPAND_TAG, _expand);
+
+    }
+    return null;
   }
 
   /**
@@ -411,7 +418,7 @@ class BotDxIo extends Dbio {
       const w = item.word;
       const node = await this.db.wordTag.where('word').equals(w).first();
       if (node) {
-        console.warning('wordTag duplicated, overwrited', node);
+        console.warn('wordTag duplicated, overwrited', node);
         await this.db.wordTag.update(node.id, { word: w, tag: item.tag });
       } else {
         await this.db.wordTag.add({
@@ -450,16 +457,16 @@ class BotDxIo extends Dbio {
         .where(['botId', 'moduleName', 'key'])
         .equals([botId, moduleName, key])
         .first();
-
-      if (!snap) {
-        snap = await this.db.memory
-          .where(['botId', 'moduleName', 'key'])
-          .equals([botId, 'main', key])
-          .first();
-      }
-
-      return snap?.value || defaultValue;
     }
+    if (!snap) {
+      snap = await this.db.memory
+        .where(['botId', 'moduleName', 'key'])
+        .equals([botId, 'main', key])
+        .first();
+    }
+
+    return snap?.value || defaultValue;
+
   }
 
   /**

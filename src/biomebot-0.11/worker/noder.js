@@ -168,7 +168,8 @@ export class Noder {
     for (const { tag, name } of this.nameToTags) {
       if (text.indexOf(name) !== -1) {
         tagDict[i] = { surf: name, feat: tag };
-        text = text.replaceAll(name, `\v${i++}\v`);
+        text = text.replaceAll(name, `\v${i}\v`);
+        i++;
       }
     }
 
@@ -176,7 +177,8 @@ export class Noder {
     for (const { tag, word } of this.wordToTags) {
       if (text.indexOf(word) !== -1) {
         tagDict[i] = { surf: word, feat: tag };
-        text = text.replaceAll(word, `\v${i++}\v`);
+        text = text.replaceAll(word, `\v${i}\v`);
+        i++;
       }
     }
 
@@ -198,8 +200,10 @@ export class Noder {
           continue;
         }
       } else if (phase === 1) {
-        console.error(segments)
         const t = tagDict[seg];
+        if (!t) {
+          console.log(segments)
+        }
         nodes.push(new Node(t.surf, t.feat));
         phase = 2;
         continue;
@@ -207,9 +211,9 @@ export class Noder {
         // seg === '\v'
         phase = 0;
         continue;
-      } else {
-        nodes.push(new Node(seg, seg));
       }
+      nodes.push(new Node(seg, seg));
+
     }
 
     // タグに続く助詞を取り込む
