@@ -66,7 +66,7 @@ import React, {
   useCallback,
 } from 'react';
 import {useStaticQuery, graphql} from 'gatsby';
-import {collection, addDoc, serverTimestamp} from 'firebase/firestore';
+import {collection, addDoc /*serverTimestamp*/} from 'firebase/firestore';
 
 import {AuthContext} from '../components/Auth/AuthProvider';
 import {syncCache, findDefaultBotId} from './botio';
@@ -424,7 +424,6 @@ export default function BiomebotProvider({
               const index = Math.floor(Math.random() * dirs.length);
 
               auth.shapeShift(dirs[index]);
-              console.log(dirs);
             }
           }
         };

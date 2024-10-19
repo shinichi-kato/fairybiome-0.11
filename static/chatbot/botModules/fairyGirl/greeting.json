@@ -26,6 +26,13 @@
     "user おやすみ",
     "sleepy おやすみ！またね！",
     "user おやすみ",
-    "sleepy おやすみ〜"
+    "sleepy おやすみ〜",
+    "",
+    "cue {ECOSYSTEM_START_SUNRISE}",
+    "cheer 日が昇ったね。おはよう！ ",
+    "cue {ECOSYSTEM_START_SUNRISE}",
+    "bot 夜が明けたね。おはよう。",
+    "cue {ECOSYSTEM_START_SUNSET",
+    "bot もうおひさまが沈む時間だね。"
   ]
 }

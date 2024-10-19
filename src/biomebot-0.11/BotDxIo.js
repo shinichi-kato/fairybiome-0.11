@@ -81,11 +81,9 @@ class BotDxIo extends Dbio {
         .equals([module.fsId, 'origin'])
         .delete();
       this.db.memory.where('botId').equals(module.fsId).delete();
-      console.log(module)
       for (const line of module.data.script) {
         const m = line.text.match(RE_TAG_LINE);
         if (m) {
-          console.log(m)
           await this.db.memory.put({
             botId: module.data.botId,
             moduleName: module.data.moduleName,
@@ -201,7 +199,6 @@ class BotDxIo extends Dbio {
    * @return {array} スクリプト[{text,timestamp}]形式
    */
   async downloadDxScript(moduleId) {
-    console.log(moduleId)
     return await this.db.scripts
       .where('[botModuleId+doc]')
       .between([moduleId, Dexie.minKey], [moduleId, Dexie.maxKey])

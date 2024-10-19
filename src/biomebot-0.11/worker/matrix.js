@@ -356,7 +356,6 @@ export function preprocess(script, validAvatars, defaultAvatar) {
       head = line.head;
       text = line.text;
     } else if (line.text !== '') {
-      console.log(line)
       const pos = line.text.indexOf(' ');
       head = line.text.slice(0, pos);
       text = line.text.slice(pos + 1);

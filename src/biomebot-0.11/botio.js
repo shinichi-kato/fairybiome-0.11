@@ -159,9 +159,6 @@ export async function syncCache(firestore, graphqlSnap, schemeName, botId) {
   const fsud = fsScheme.updatedAt;
   const dxud = dxScheme.updatedAt;
   const gqud = gqScheme.updatedAt;
-  console.log(fsScheme)
-  console.log(dxScheme)
-  console.log(gqScheme)
 
   if (fsud < gqud && dxud < gqud) {
     // gqが最新：初期化
@@ -214,7 +211,6 @@ async function uploadFsScheme(firestore, scheme, fsScheme) {
       }
   */
 
-  console.log(scheme)
 
   const batch = writeBatch(firestore);
 

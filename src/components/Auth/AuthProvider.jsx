@@ -394,6 +394,7 @@ export default function AuthProvider({firebase, firestore, children}) {
         setDoc(docRef, {
           backgroundColor: data.backgroundColor,
           avatarDir: data.avatarDir,
+          displayName: data.displayName,
         })
           .then(() => {
             // listernerでstateが書き換えられる
