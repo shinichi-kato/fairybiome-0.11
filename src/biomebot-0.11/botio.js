@@ -345,7 +345,7 @@ function getModuleNameToFsId(fsScheme) {
  * @param {String} botId チャットボットのId
  * @return {Object} scheme
  */
-async function downloadFsScheme(firestore, botId) {
+export async function downloadFsScheme(firestore, botId) {
   const scheme = {
     updatedAt: new Date(0), // main,partsのうち最新のもの
     botModules: [], // 内容は{id,data}
