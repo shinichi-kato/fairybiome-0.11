@@ -45,6 +45,7 @@ export const main = {
 
     // メッセージスプールの設定
     main.proposalSpool = [];
+    main.replying = false;
     main.channel.onmessage = (event) => {
       const action = event.data;
       switch (action.type) {
@@ -56,10 +57,10 @@ export const main = {
               score: action.score,
               index: action.index,
             });
-
-            // biomebotに「反応中」を通知
-            main.worker.postMessage({ type: 'replying' });
           }
+          // biomebotに「反応中」を通知
+          main.replying = true;
+          main.worker.postMessage({ type: 'replying', moduleName: action.moduleName, score: action.score });
           break;
         }
 
@@ -163,9 +164,21 @@ export const main = {
         ...hit,
       });
 
-      // スプール消去
-      main.proposalSpool = [];
     }
+    else if (main.replying) {
+
+      // 回答できなかった場合、次回silence実行
+      main.channel.postMessage({
+        type: 'input',
+        action: {
+          message: '{SILENCE}',
+        }
+      });
+    }
+    // スプール消去
+    main.proposalSpool = [];
+    main.replying = false;
+
   },
 
   reply: (action) => {

@@ -270,6 +270,7 @@ class BotDxIo extends Dbio {
      * @return {String} 展開後の文字列
      */
     async function _expand(tag) {
+      console.log(moduleName, tag);
       let snap = await db.memory
         .where(['botId', 'moduleName', 'key'])
         .equals([botId, moduleName, tag])

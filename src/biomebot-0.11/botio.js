@@ -233,7 +233,7 @@ async function uploadFsScheme(firestore, scheme, fsScheme) {
         } else if (item.doc === 'origin') {
           origin.push({ doc: item.doc, text: item.text }); // ,item:item.idを消した
         } else if (item.doc === 'page0') {
-          page0.push({ doc: item.doc, text: item.text }); // ,item:item.idを消した
+          page0.push({ doc: item.doc, text: `${item.head} ${item.text}` }); // ,item:item.idを消した
         }
       }
 

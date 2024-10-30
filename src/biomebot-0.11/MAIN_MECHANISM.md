@@ -29,7 +29,7 @@ Note over main: pick {ON_SELECT}
 main-)+part1: broadcast start
 Note right of part1: retrieve {!on_start}
 part1--)-main: broadcast propose
-main--)provider: working
+main--)provider: replying
 Note over main : integrate
 main-)+part1: broadcast approve
 Note right of part1: render
@@ -42,9 +42,9 @@ main-)+part1: broadcast input
 Note right of part1: retrieve
 Note right of part0: retrieve
 part1--)-main: broadcast propose
-main--)provider: working
+main--)provider: replying
 part0--)-main: broadcast propose
-main--)provider: working
+main--)provider: replying
 activate main
 Note over main: integrate
 

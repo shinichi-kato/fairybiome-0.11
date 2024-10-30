@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2024-09-16T16:09:05.000Z",
+  "updatedAt": "2024-10-26T16:09:05.000Z",
   "script": [
     "{DEFAULT_AVATAR} cheer",
     "with {!on_start}",
@@ -28,11 +28,25 @@
     "user おやすみ",
     "sleepy おやすみ〜",
     "",
+    "cue {ECOSYSTEM_START_DAWN}",
+    "bot もうすぐ夜明けだね。",
+    "",
     "cue {ECOSYSTEM_START_SUNRISE}",
     "cheer 日が昇ったね。おはよう！ ",
+    "",
     "cue {ECOSYSTEM_START_SUNRISE}",
     "bot 夜が明けたね。おはよう。",
-    "cue {ECOSYSTEM_START_SUNSET",
-    "bot もうおひさまが沈む時間だね。"
+    "",
+    "cue {ECOSYSTEM_START_SUNSET}",
+    "bot もうおひさまが沈む時間だね。",
+    "",
+    "cue {ECOSYSTEM_START_DUSK}",
+    "bot そろそろ暗くなってきたね。",
+    "",
+    "cue {ECOSYSTEM_START_NIGHT}",
+    "bot もうすっかり夜だね。",
+    "",
+    "cue {ECOSYSTEM_START_MIDNIGHT}",
+    "bot 真夜中だね〜"
   ]
 }

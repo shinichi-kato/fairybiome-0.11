@@ -276,13 +276,16 @@ export function tee(script) {
       }
       i++;
     }
+    if (inBlock.length !== outBlock.length) {
+      errors.push(`${i}行目: 入力と出力の数が異なっています`);
+    }
+    if (inBlock.length === 0) {
+      errors.push(`${i}行目: ブロックサイズが0です`);
+    }
     inScript.push([...inBlock]);
     outScript.push(...outBlock);
     inBlock = [];
     outBlock = [];
-    if (inBlock.length !== outBlock.length) {
-      errors.push(`${i}行目: 入力と出力の数が異なっています`);
-    }
   }
 
   return {
@@ -399,6 +402,11 @@ export function preprocess(script, validAvatars, defaultAvatar) {
       withLine = text;
       continue;
     }
+    // avatar文
+    if (head === 'avatar') {
+      scriptAvatars.bot = text;
+      continue;
+    }
 
     // 空行
     if (text.match(RE_BLANK_LINE)) {
@@ -408,6 +416,7 @@ export function preprocess(script, validAvatars, defaultAvatar) {
         block = [];
         isBotExists = false;
         isCueOrUserExists = false;
+        prevKind = null;
       }
       continue;
     }
@@ -449,7 +458,7 @@ export function preprocess(script, validAvatars, defaultAvatar) {
     if (head in scriptAvatars) {
       parsed[0] = scriptAvatars[head];
 
-      if (prevKind == KIND_BOT) {
+      if (prevKind === KIND_BOT) {
         // bot行が連続したら一つにまとめる
         const bl = block.length - 1;
         block[bl][1] += `\n${text}`;
