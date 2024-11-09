@@ -167,11 +167,14 @@ export const main = {
     }
     else if (main.replying) {
 
-      // 回答できなかった場合、次回silence実行
+      // 回答できなかった場合、次回{NO_ANSWER}を追加して返答を再試行。
+      // {NO_ANSWER}が含まれた辞書がヒットする。
       main.channel.postMessage({
         type: 'input',
         action: {
-          message: '{SILENCE}',
+          message: {
+            text: `{NO_ANSWER}${main.currentInput.text}`,
+          }
         }
       });
     }

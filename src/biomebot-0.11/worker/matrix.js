@@ -107,6 +107,7 @@ export function matrixize(inScript, params, noder) {
 
    */
   const { tailing, condWeight, timeWeight } = params;
+  console.log(params, tailing)
   let m;
   let i;
   const condVocab = {}; // 条件タグのvocab

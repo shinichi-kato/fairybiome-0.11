@@ -190,14 +190,16 @@ function generateWv(nodes, source) {
 
   // wvの正規化
   // norm(x)が0の場合はwvはzerosでzerosのままとする
-  const invWv = apply(wv, 1, (x) => divide(1, norm(x) || 1));
+  const invWv = apply(wv, 1, (x) => { const n = norm(x); return n === 0 ? 1 : divide(1, n); });
   wv = multiply(diag(invWv), wv);
 
   // 直前のwvの影響をtailingに応じて受けたwvを得る
   let wvd = concat(source.prevWv, wv, 0);
 
+  console.log(wvd, source.delayEffect)
   wvd = multiply(source.delayEffect, wvd);
   wvd = row(wvd, 1);
+  console.log(wvd)
 
   return [wvd, unknown];
 }

@@ -250,7 +250,6 @@ export const part = {
    */
   async _spotWord(text) {
     const inNodes = part.noder.nodify(text);
-    console.log(inNodes);
     for (const node of inNodes) {
       const m = node.feat.match(RE_WORD_TAG);
       if (m) {

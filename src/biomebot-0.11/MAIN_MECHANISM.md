@@ -24,6 +24,7 @@ participant provider
 participant main
 participant part1 as target part
 participant part0 as other part
+
 provider-) main: run
 Note over main: pick {ON_SELECT}
 main-)+part1: broadcast start
@@ -55,6 +56,31 @@ Note right of part1: render
 
 part1--)-main: broadcast reply
 main--)provider: reply
+
+```
+
+## すべてのパートが応答できなかった場合の動作
+```mermaid
+sequenceDiagram
+title Run
+participant provider
+participant main
+participant part1 as target part
+participant part0 as other part
+provider-)main: input
+main-)+part0: broadcast input
+main-)+part1: broadcast input
+Note right of part1: retrieve
+Note right of part0: retrieve
+part1--)-main: broadcast propose
+main--)provider: replying
+part0--)-main: broadcast propose
+main--)provider: replying
+activate main
+Note over main: integrate
+
+main-)+part1: input '{NO_ANSWER}'
+Note right of part1: retrieve
 
 ```
 

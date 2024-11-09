@@ -341,10 +341,10 @@ class BotDxIo extends Dbio {
    * @param {string} key key文字列
    * @param {string} botId botId
 
-   * @param {string} defaultValue keyが見つからなかった場合のデフォルト値
+   * @param {string} defaultValue keyが見つからなかった場合のデフォルト値。指定しない場合もとのタグ文字列
     * @param {string} moduleName 展開を要求したモジュールの名前  * @return {String} 展開した文字列
    */
-  async readTag(key, botId, defaultValue = '', moduleName = 'main') {
+  async readTag(key, botId, defaultValue = null, moduleName = 'main') {
     return await this._findTag(key, botId, defaultValue, moduleName);
   }
 
@@ -364,8 +364,9 @@ class BotDxIo extends Dbio {
 
     const values = await this._findTag(key, botId, null, moduleName);
 
-    if (!values) {
-      return defaultValue;
+    if (values === key) {
+      // _findTagは見つからなかった場合keyを返してくる
+      return defaultValue || key;
     }
 
     return values[randomInt(values.length)];
@@ -463,7 +464,7 @@ class BotDxIo extends Dbio {
         .first();
     }
 
-    return snap?.value || defaultValue;
+    return snap?.value || defaultValue || key;
 
   }
 
