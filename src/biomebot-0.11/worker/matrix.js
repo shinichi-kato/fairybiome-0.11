@@ -107,7 +107,7 @@ export function matrixize(inScript, params, noder) {
 
    */
   const { tailing, condWeight, timeWeight } = params;
-  console.log(params, tailing)
+  // console.log(params, tailing)
   let m;
   let i;
   const condVocab = {}; // 条件タグのvocab
@@ -145,9 +145,13 @@ export function matrixize(inScript, params, noder) {
   if (wordVocabKeys.length === 1) {
     wordVocabKeys.push('__dummy__');
   }
-  if (condVocabKeys.length === 1) {
-    condVocabKeys.push('__dummy__');
+  if (condVocabKeys.length === 0) {
+    condVocabKeys.push('__dummy0__', '__dummy1__');
   }
+  if (condVocabKeys.length === 1) {
+    condVocabKeys.push('__dummy0__');
+  }
+
 
   let ic = 0;
   let iw = 0;
@@ -239,7 +243,7 @@ export function matrixize(inScript, params, noder) {
     wordVocabLength: wordVocabKeys.length,
     condVocabLength: condVocabKeys.length,
     wordVocab: wordVocab,
-    condVocab: condVocab,
+    condVocab: condVocab === 0 ? zeros(1, 1) : condVocab,
     wordMatrix: wv,
     condMatrix: cv,
     timeMatrix: timeMatrix,
@@ -332,6 +336,7 @@ export function preprocess(script, validAvatars, defaultAvatar) {
      ・validAvatarsにないvatarが指定されたらdefaultAvatarに読み替える
      ・blockにuser行もenv行も含まれない場合前のブロックの続きとみなす
      ・blockにbot行が含まれない場合{prompt}で補う
+     ・block末尾のoutScriptに{DEACTIVATE}を追加する
 
 
      出力する中間スクリプトは以下のフォーマットに従う
@@ -379,6 +384,22 @@ export function preprocess(script, validAvatars, defaultAvatar) {
     return [head, text, ts];
   };
 
+  const isBlockStructureOk = (i) => {
+    if (!isCueOrUserExists) {
+      errors.push(`${i}行目: ブロックに cueまたはuser行が含まれていません`);
+      return false;
+    }
+    if (!isBotExists) {
+      errors.push(`${i}行目: ブロックに botの発言行が含まれていません`);
+      return false;
+    }
+    if (prevKind !== KIND_BOT) {
+      errors.push(`${i}行目: ブロック末尾がbotの発言行になっていません`);
+      return false;
+    }
+    return true;
+  };
+
   // headのbot指定
   const scriptAvatars = {
     bot: defaultAvatar,
@@ -409,15 +430,20 @@ export function preprocess(script, validAvatars, defaultAvatar) {
       continue;
     }
 
-    // 空行
+    // 空行はブロックのはじめとみなす
     if (text.match(RE_BLANK_LINE)) {
-      // 空行はブロックのはじめとみなす
-      if (block.length !== 0 && isCueOrUserExists && isBotExists) {
+      if (block.length !== 0 && isBlockStructureOk(i)) {
+        // ブロック末尾のbot発言に{DEACTIVATE}を挿入
+        const bl = block.length - 1;
+        block[bl][1] += '{DEACTIVATE}';
+
+        // ブロックをnewScriptに追加
         newScript.push([...block]);
         block = [];
         isBotExists = false;
         isCueOrUserExists = false;
         prevKind = null;
+
       }
       continue;
     }
@@ -431,7 +457,11 @@ export function preprocess(script, validAvatars, defaultAvatar) {
     // cue行
     if (head === 'cue') {
       // cue行はブロックのはじめとみなす
-      if (block.length !== 0 && isCueOrUserExists && isBotExists) {
+      if (block.length !== 0 && isBlockStructureOk(i)) {
+        // ブロック末尾のbot発言に{DEACTIVATE}を挿入
+        const bl = block.length - 1;
+        block[bl][1] += '{DEACTIVATE}';
+
         newScript.push([...block]);
         block = [];
         isBotExists = false;
@@ -479,7 +509,6 @@ export function preprocess(script, validAvatars, defaultAvatar) {
 
   if (prevKind !== KIND_BOT) {
     // 最後はbot行で終わること
-    console.log(script[script.length - 1]);
     errors.push(
       `最終行${script[script.length - 1]}がbotの発言になっていません`
     );

@@ -196,10 +196,8 @@ function generateWv(nodes, source) {
   // 直前のwvの影響をtailingに応じて受けたwvを得る
   let wvd = concat(source.prevWv, wv, 0);
 
-  console.log(wvd, source.delayEffect)
   wvd = multiply(source.delayEffect, wvd);
   wvd = row(wvd, 1);
-  console.log(wvd)
 
   return [wvd, unknown];
 }
@@ -212,15 +210,21 @@ function generateWv(nodes, source) {
  * @return {matrix} cv
  */
 async function generateCv(nodes, source, botId) {
+  // 条件タグが使われていない場合(condVocabLengthが0)、以降の計算で
+  // エラーになるのを防ぐためダミーのマトリクスを返す
+  if (source.condVocabLength === 0) {
+    return zeros(1, 1);
+  }
+
   const cv = zeros(1, source.condVocabLength);
 
   // memoryに格納されたcondTagをcvに取り込む
   const condSnap = await botDxIo.readCondTags(source.condVocab, botId);
+  // ここまでは動作
   for (const item of condSnap) {
     const pos = source.condVocab[item.key];
     cv.set([0, pos], Number(item.value));
   }
-
   // 入力文字列に含まれる条件タグをcvに取り込む。
   // 辞書になかった条件タグは無視する
   let m;

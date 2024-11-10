@@ -40,7 +40,7 @@ export const part = {
       ),
     };
     part.noder = new Noder(botId);
-    part.retention = Number(await botDxIo.pickTag('{RETENTION}', botId, 0.8));
+
 
     await part.noder.loadTags();
 
@@ -72,7 +72,7 @@ export const part = {
         }
         case 'approve': {
           // engageを受け取ったが自分ではない
-          part.deactivate();
+          // なにもしない
           return;
         }
         case 'kill': {
@@ -98,8 +98,9 @@ export const part = {
     */
     // このパートをactivateする。
     part.activationLevel = Number(
-      await botDxIo.pickTag('{FORCED_ACTIVATION}', part.botId, 2)
+      await botDxIo.pickTag('{FORCED_ACTIVATION}', part.botId, 1)
     );
+
     const retrieved = await retrieve(
       {
         text: '{!on_start}',
@@ -119,7 +120,7 @@ export const part = {
     part.channel.postMessage({
       type: 'propose',
       moduleName: part.moduleName,
-      score: retrieved.score * part.activationLevel,
+      score: retrieved.score * (part.activationLevel + 1),
       index: retrieved.index,
     });
   },
@@ -129,6 +130,7 @@ export const part = {
       {type: input}により発行された環境やユーザからの入力を
       受取り、
       ・返答候補のスコア情報を返す。
+      ・activationLevelを{RETINTION}値との積で漸減させる
     */
     // やり取りを辞書化するためinputを保持しておく
     const m = action.message;
@@ -137,14 +139,18 @@ export const part = {
       text: part._standardize(m.text),
       displayName: m.displayName,
     };
-    // console.log(part.latestInput);
+
+    // retention
+    part.activationLevel *= Number(await botDxIo.pickTag('{RETENTION}', part.botId, 0.8));
+
     const retr = await retrieve(m, part.source, part.botId, part.noder);
 
     part.channel.postMessage({
       type: 'propose',
       moduleName: part.moduleName,
-      score: retr.score,
+      score: retr.score * (part.activationLevel + 1),
       index: retr.index,
+      activationLevel: part.activationLevel,
     });
   },
 
@@ -168,7 +174,6 @@ export const part = {
       );
       await botDxIo.touchDxScheme(part.botId, part.moduleName);
 
-      part.activationLevel *= part.retention;
     } else {
       // アクティベーション
       part.activationLevel = Number(
@@ -183,6 +188,12 @@ export const part = {
     // line = [head,text]
     const head = line[0];
     let text = await botDxIo.expand(line[1], part.botId, part.moduleName);
+
+    // {DEACTIVATE}
+    text = text.replace("{DEACTIVATE}", () => {
+      part.activationLevel = -1;
+      return ""
+    })
 
     // 条件タグの書き込み
     text = await replaceAsync(text, RE_COND_TAG, async (m, mode, tag) => {
@@ -218,12 +229,11 @@ export const part = {
   },
 
   deactivate: () => {
-    part.activationLevel *= part.retention;
+    part.activationLevel = -1;
   },
 
   _calc_matrix: async () => {
     // scriptをDBから取得。形式は[{test,timestamp}]
-    console.log(part)
     const script = await botDxIo.downloadDxScript(part.moduleId);
     const stage1 = matrix.preprocess(
       script,

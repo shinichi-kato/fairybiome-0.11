@@ -8,17 +8,29 @@ FairyBiome-0.11 パートの動作機序
 ### ACTIVATION
 {ACTIVATION} 0.2,1.2,1.0,0.2,0.2
 パートには活性状態、不活性状態がある。これをpart内の変数{ACTIVATION_LEVEL}で管理する。
-パートは初期に不活性状態で{ACTIVATION_LEVEL}は0である。
-この状態でパートが動作するたびに現在の{ACTIVATION_LEVEL}が0であれば{ACTIVATION}のうちランダムに一つが選ばれ、パートの出力はtfidfのスコアと{ACTIVATINO_LEVEL}の積になる。そのため{ACTIVATION_LEVEL}値が1より大きい場合は他のパートよりも優先して発火する確率が高くなる。これにより動作する/しないの挙動にランダム性が導入される。出力文字列の中に{DEACTIVATE}が明示されたら{ACTIVATION_LEVEL}は0になる。
-このパートを排他的に動作させたければ10など他とくらべてより大きな値を設定する。
+
+|activationLevel,a | 状態     |
+|------------------|----------|
+|-1＜a＜0          | 不活性   |
+|    a=0           | 平常     |
+|      0＜a        | 活性     |
+
+
+partが返答をproposeする際にscoreはretrieve()関数score値とpart.activationLevel+1 の積を返す。
+
+パートは初期に不活性状態で part.activationlevel は0である。
+このパートのproposeした結果がapproveされた際、part.activationLevelの値は{ACTIVATION}からランダムに選んだ一つが代入される。そのため一旦activateされたパートは優先的に返答しやすくなる。
+
+出力文字列に{DEACTIVATE}が明示された場合、または他のパートがapproveされた場合はpart.activationLevel=-1となる。また、辞書中の空行は話題の終了を意味し、その時点で自動的にdeactivationを行う。
+
+### RETENTION
+{RETENTION} 0.8
+part.activationLevelはrecieveのたびに part.activationLevel*{RETENTION}の値が代入される。これによりactivationLevelが正負のいずれでも絶対値は0に近づき、平常状態に復帰しようとする。
 
 ### FORCED_ACTIVATION
 {FORCED_ACTIVATION} 10,8
 外部からこのパートをactivateする場合、{ACTIVATION_LEVEL}は{FORCED_ACTIVATION}から選ばれる。
 
-### RETENTION
-{RETENTION} 0.8
-一旦活性化状態に移行したパートは{ACTIVATION_LEVEL}値が記憶され、以降も活性な状態がある期間持続する。その期間を決めるため、活性化状態の間はパートが動作するたびに{ACTIVATION_LEVEL}は{ACTIVATION_LEVEL}と{RETENTION}の積を取り、それを次の{ACTIVATION_LEVEL}値とする。{ACTIVATION_LEVEL}が0.1を下回ったら不活性状態に移行する
 
 ## テキストのエンコード
 入出力文字列は内部的にNode列に変換して扱う。各Nodeはsurface(表層形)とtokenからなり、以下のように表す。
@@ -353,4 +365,6 @@ peace ボットの返答(先頭が有効なavatar名の場合そのavatarが表�
 * -- {I}などが復号化されない --
 * -- updateFsSchemeでfsIdが受け渡されていない --
 * 新しく覚えたpage0の記憶にheadが残っていない
-
+* 語尾変化ができてない
+* 「0107undefinedな羽だね。」というレンダリング失敗？。＋リセットされたら記憶に残らないで、それをそのまま記憶している
+* 「おやすみ！0106undefined！」も

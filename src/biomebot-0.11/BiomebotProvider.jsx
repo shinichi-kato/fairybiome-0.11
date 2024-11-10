@@ -186,7 +186,7 @@ const initialState = {
  * @return {object} 新しいstate
  */
 function reducer(state, action) {
-  console.log(action.type, action);
+  // console.log(action.type, action);
   switch (action.type) {
     case 'setChannel': {
       return {
