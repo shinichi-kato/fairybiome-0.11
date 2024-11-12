@@ -9,7 +9,7 @@ import { MessageFactory } from '../../message';
 export const main = {
   botId: null,
   schemeName: null,
-  avatarDir: null,
+  avatarDir: 'default',
   backgroundColor: '#cccccc',
   channel: new BroadcastChannel('biomebot'),
 

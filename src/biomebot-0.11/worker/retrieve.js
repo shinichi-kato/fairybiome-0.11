@@ -210,17 +210,11 @@ function generateWv(nodes, source) {
  * @return {matrix} cv
  */
 async function generateCv(nodes, source, botId) {
-  // 条件タグが使われていない場合(condVocabLengthが0)、以降の計算で
-  // エラーになるのを防ぐためダミーのマトリクスを返す
-  if (source.condVocabLength === 0) {
-    return zeros(1, 1);
-  }
 
   const cv = zeros(1, source.condVocabLength);
 
   // memoryに格納されたcondTagをcvに取り込む
   const condSnap = await botDxIo.readCondTags(source.condVocab, botId);
-  // ここまでは動作
   for (const item of condSnap) {
     const pos = source.condVocab[item.key];
     cv.set([0, pos], Number(item.value));

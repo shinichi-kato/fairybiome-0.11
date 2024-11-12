@@ -170,7 +170,7 @@ const initialState = {
   botRepr: {
     displayName: '',
     avatarDir: 'default',
-    avatar: 'null',
+    avatar: 'loading',
     backrgoundColor: '#cccccc',
     replyingCount: 0,
     botId: null,

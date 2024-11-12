@@ -6,7 +6,8 @@ import { retrieve } from './retrieve';
 import * as matrix from './matrix';
 
 const RE_COND_TAG = /\{([+-])([a-zA-Z_][a-zA-Z_0-9]*)\}/g;
-const RE_WORD_TAG = /\{([0-9]+)\}\t?(.+)?/;
+const RE_WORD_TAG = /(\{[0-9]+\})\t?(.+)?/; //"{1019}" と "{1031}\tが"
+const RE_TAG = /(\{[a-zA-Z_][a-zA-Z_0-9]*\})/;
 
 export const part = {
   botId: null,
@@ -38,6 +39,7 @@ export const part = {
       timeWeight: Number(
         await botDxIo.pickTag('{TIMESTAMP_WEIGHT}', botId, 0.2)
       ),
+      activationThreshold: Number(await botDxIo.pickTag('{ACTIVATION_THRESHOLD}', botId, 0.2)),
     };
     part.noder = new Noder(botId);
 
@@ -166,7 +168,7 @@ export const part = {
 
     // active状態が続いていたら会話内容を記録。
     // activationLevelは漸減
-    if (part.activationLevel > 0) {
+    if (part.activationLevel > part.calcParams.activationThreshold) {
       await botDxIo.memorizeLine(
         part.latestOutput,
         part.latestInput,
@@ -262,11 +264,16 @@ export const part = {
     const inNodes = part.noder.nodify(text);
     for (const node of inNodes) {
       const m = node.feat.match(RE_WORD_TAG);
+      // featは"{0102}\tを"または"{0102}"
       if (m) {
+        let value;
+        if (m[2]) {
+          value = [node.surface.split(m[2])];
+        } else {
+          value = [node.surface];
+        }
         const key = m[1];
-        const value = [node.surface.split(m[2])];
-        console.log('spotted', key, '=', value);
-        // スポットされた例がない・・・
+        console.log('spotted', m, key, '=', value);
         await botDxIo.updateTagValue(key, value, part.botId, { overwrite: true });
       }
     }
@@ -282,19 +289,30 @@ export const part = {
     const rendered = [];
 
     for (const node of outNodes) {
-      const m = node.feat.match(RE_WORD_TAG);
+      let m = node.feat.match(RE_WORD_TAG);
+
       if (m) {
+        //  "{0003}\tと" または "{0103}"     
         const key = m[1];
-        const suffix = m[2];
+        const suffix = m[2] || "";
         const word = await botDxIo.pickTag(key, part.botId);
         if (word) {
+          console.log("dispatched", key, "=", word)
           rendered.push(`${word}${suffix}`);
         } else {
           rendered.push(node.surface);
         }
-      } else {
-        rendered.push(node.surface);
+        continue;
       }
+
+      m = node.feat.match(RE_TAG);
+      if (m) {
+        const key = m[1];
+        const word = await botDxIo.pickTag(key, part.botId);
+        rendered.push(word || node.surface);
+        continue;
+      }
+      rendered.push(node.surface);
     }
 
     return rendered.join('');

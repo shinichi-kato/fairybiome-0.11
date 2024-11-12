@@ -65,8 +65,8 @@ const initialState = {
   user: undefined,
   userProps: {
     backgroundColor: '#cccccc',
-    avatarDir: '',
-    avatar: 'peace',
+    avatarDir: 'default',
+    avatar: 'loading',
   },
   authState: 'init',
   error: undefined,

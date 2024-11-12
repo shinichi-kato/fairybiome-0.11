@@ -32,6 +32,7 @@
     "{ON_START} sleep,greeting,offStage",
     "{ON_SUMMON} greeting",
     "{ACTIVATION} 0.3,0.4",
+    "{ACTIVATION_THRESHOLD} 0.2",
     "{FORCED_ACTIVATION} 5",
     "{RETENTION} 0.5",
     "{DEFAULT_AVATAR} peace"

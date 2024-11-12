@@ -139,7 +139,7 @@ export function matrixize(inScript, params, noder) {
   const condVocabKeys = Object.keys(condVocab);
   const wordVocabKeys = Object.keys(wordVocab);
 
-  // condVocab,wordVocabともに1つしか要素がない場合
+  // condVocab,wordVocabともに要素が2つ未満の場合
   // dot()計算が失敗するのでダミーを加える
 
   if (wordVocabKeys.length === 1) {
