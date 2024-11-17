@@ -26,7 +26,7 @@ import {
   collection,
   query,
   where,
-  getDocs,
+  // getDocs,
   onSnapshot,
 } from 'firebase/firestore';
 
@@ -162,6 +162,9 @@ export default function RepositoryPage() {
     };
   }, [dispatch, firestore]);
 
+  // ---------------------------------------------------------
+
+
   function handleChangePage(page) {
     dispatch({ type: 'changePage', page: page })
   }
@@ -211,7 +214,7 @@ export default function RepositoryPage() {
                         "アップロード元にないbotModuleは温存されます。"]}
                       handleClick={() => handleChangePage('append')}
                     />
-                    <SettingsItem title="上書きダウンロード"
+                    <SettingsItem title="上書ダウンロード"
                       text={["ユーザとそのチャットボットの一覧を表示し、上書きアップロードを行うユーザを一つまたは複数選択します。",
                         "選択したユーザに対してデータをアップロードします。このチャットボットをユーザが保有していない場合は",
                         "新規のデータがアップロードされ、ユーザがすでに同じschemeNameのチャットボットを保有している場合",

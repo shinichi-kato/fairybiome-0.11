@@ -68,7 +68,7 @@ import {
 } from 'firebase/firestore';
 import { botDxIo } from './BotDxIo';
 
-const RE_NON_INPUT_LINE = /^(#|with|bot|{)/;
+// const RE_NON_INPUT_LINE = /^(#|with|bot|{)/;
 
 /**
  *
@@ -225,7 +225,6 @@ async function uploadFsScheme(firestore, scheme, fsScheme) {
           // タグ行は飛ばす
           continue;
         }
-
         if (!('doc' in item)) {
           // 初期のgraphqlから得たデータにはdoc,id情報がないため
           // 補完する
@@ -403,15 +402,6 @@ export function graphqlToScheme(gqSnap, schemeName, botId) {
     // 簡易的パース
     const script = [];
     for (const line of src) {
-      if (line.match(RE_NON_INPUT_LINE)) {
-        script.push({ text: line });
-        continue;
-      }
-      const v = line.split('\t');
-      if (v.length === 2) {
-        script.push({ text: v[0], timestamp: new Date(Number(v[1])) });
-        continue;
-      }
       script.push({ text: line });
     }
     return script;

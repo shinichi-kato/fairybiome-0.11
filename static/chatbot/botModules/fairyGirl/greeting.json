@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2024-10-26T16:09:05.000Z",
+  "updatedAt": "2024-11-17T06:04:05.000Z",
   "script": [
     "{DEFAULT_AVATAR} cheer",
     "with {!on_start}",
