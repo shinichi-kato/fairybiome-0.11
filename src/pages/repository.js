@@ -64,9 +64,9 @@ function reducer(state, action) {
           avatarDir: d.avatarDir,
           backgroundColor: d.backgroundColor,
           userProps: uid in state.users ? state.users[uid] : {
-            displayName: 'deleted user',
+            displayName: 'unknown user',
             backgroundColor: '',
-            avatarDir: 'deleted_user'
+            avatarDir: 'unknown_user'
           }
         })
       }
@@ -82,15 +82,35 @@ function reducer(state, action) {
         mains.push({
           ...main,
           userProps: main.uid in action.users ? action.users[main.uid] : {
-            displayName: 'deleted user',
+            displayName: 'unknown user',
             backgroundColor: '',
-            avatarDir: 'deleted_user'
+            avatarDir: 'unknown_user'
           }
         });
       }
+      let users = {};
+      for (const user in action.users) {
+        let mainModules = [];
+        for (const main of state.mainModules) {
+          if (main.uid === user) {
+            mainModules.push({
+              fsId: main.fsId,
+              botId: main.botId,
+              schemeName: main.schemeName,
+              updatedAt: main.updatedAt,
+              avatarDir: main.avatarDir,
+              backgroundColor: main.backgroundColor,
+            });
+          }
+        }
+        users[user] = {
+          ...action.users[user],
+          mainModules: mainModules,
+        };
+      }
       return {
         ...state,
-        users: action.users,
+        users: users,
         mainModules: mains
       }
     }
@@ -187,7 +207,7 @@ export default function RepositoryPage() {
               /> :
               page === 'append' ?
                 <BotUpload
-                  how='appwnd'
+                  how='append'
                   repoState={state}
                   firestore={firestore}
                   handleBack={handleBack}

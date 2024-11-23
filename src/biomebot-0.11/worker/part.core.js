@@ -287,7 +287,6 @@ export const part = {
   async _dispatchWord(text) {
     const outNodes = part.noder.nodify(text);
     const rendered = [];
-
     for (const node of outNodes) {
       let m = node.feat.match(RE_WORD_TAG);
 
@@ -296,7 +295,7 @@ export const part = {
         const key = m[1];
         const suffix = m[2] || "";
         const word = await botDxIo.pickTag(key, part.botId);
-        if (word) {
+        if (word && word !== key) {
           console.log("dispatched", key, "=", word)
           rendered.push(`${word}${suffix}`);
         } else {
@@ -307,9 +306,10 @@ export const part = {
 
       m = node.feat.match(RE_TAG);
       if (m) {
+        console.log(m)
         const key = m[1];
         const word = await botDxIo.pickTag(key, part.botId);
-        rendered.push(word || node.surface);
+        rendered.push(word === key ? node.surface : word);
         continue;
       }
       rendered.push(node.surface);

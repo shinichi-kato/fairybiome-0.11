@@ -29,7 +29,7 @@ export default function BotDownload({repoState, firestore, handleBack}) {
   "#",
   "",
 
-  というデータを追加する。
+  という行を追加し、すべてoriginに巻き取る。
   */
 
   async function handleDownload(botId) {
@@ -65,13 +65,14 @@ export default function BotDownload({repoState, firestore, handleBack}) {
     }
 
     for (const botModule of scheme.botModules) {
+      const timestamp = new Date(botModule.data.updatedAt.seconds * 1000);
       const scripts = [];
       for (const p in pages) {
         if (p !== 'origin') {
           scripts.push([
             '',
             '# -------------------------------------',
-            `# ${p}`,
+            `# ${p} ${timestamp.toString()}`,
             '#',
             '',
           ]);
@@ -86,7 +87,7 @@ export default function BotDownload({repoState, firestore, handleBack}) {
           script: scripts,
         }),
         {
-          date: new Date(botModule.data.updatedAt.seconds * 1000),
+          date: timestamp,
         }
       );
       schemeName = botModule.data.schemeName;
