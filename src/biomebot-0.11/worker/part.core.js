@@ -5,6 +5,14 @@ import { Noder } from './noder';
 import { retrieve } from './retrieve';
 import * as matrix from './matrix';
 
+const DEFAULT_PARAM = {
+  TAILING: 0.6, // 類似度行列で今の行が前の行に影響を受ける割合
+  LARNING_FACTOR: 1.0, // origin以外のscript(=学習部分)の重み付け
+  CONDITION_WEIGHT: 1.0, // 条件タグの重み付け
+  TIMESTAMP_WEIGHT: 0.2, // タイムスタンプの重み付け
+  ACTIVATION_THRESHOLD: 0.2, // ACTIVATIONが起きる最小の類似度値
+};
+
 const RE_COND_TAG = /\{([+-])([a-zA-Z_][a-zA-Z_0-9]*)\}/g;
 const RE_WORD_TAG = /(\{[0-9]+\})\t?(.+)?/; //"{1019}" と "{1031}\tが"
 const RE_TAG = /(\{[a-zA-Z_][a-zA-Z_0-9]*\})/;
@@ -33,13 +41,23 @@ export const part = {
       botId,
       'peace'
     );
+
+    let tailing = Number(await botDxIo.pickTag('{TAILING}', botId, DEFAULT_PARAM.TAILING));
+    if (tailing >= 1) {
+      console.warn(`tailing値(=${tailing})が以上のため、${DEFAULT_PARAM.TAILING}にしました`)
+      tailing = 0.6
+    }
+
+    let larningFactor = Number(await botDxIo.pickTag('{LARNING_FACTOR}', botId, DEFAULT_PARAM.LARNING_FACTOR));
+
     part.calcParams = {
-      tailing: Number(await botDxIo.pickTag('{TAILING}', botId, 0.6)),
-      condWeight: Number(await botDxIo.pickTag('{CONDITION_WEIGHT}', botId, 1)),
+      tailing: tailing,
+      larningFactor: larningFactor,
+      condWeight: Number(await botDxIo.pickTag('{CONDITION_WEIGHT}', botId, DEFAULT_PARAM.CONDITION_WEIGHT)),
       timeWeight: Number(
-        await botDxIo.pickTag('{TIMESTAMP_WEIGHT}', botId, 0.2)
+        await botDxIo.pickTag('{TIMESTAMP_WEIGHT}', botId, DEFAULT_PARAM.TIMESTAMP_WEIGHT)
       ),
-      activationThreshold: Number(await botDxIo.pickTag('{ACTIVATION_THRESHOLD}', botId, 0.2)),
+      activationThreshold: Number(await botDxIo.pickTag('{ACTIVATION_THRESHOLD}', botId, DEFAULT_PARAM.ACTIVATION_THRESHOLD)),
     };
     part.noder = new Noder(botId);
 
@@ -189,13 +207,19 @@ export const part = {
     const line = part.outScript[action.index];
     // line = [head,text]
     const head = line[0];
-    let text = await botDxIo.expand(line[1], part.botId, part.moduleName);
+    let text = line[1];
 
     // {DEACTIVATE}
+    console.log(text)
     text = text.replace("{DEACTIVATE}", () => {
       part.activationLevel = -1;
+      console.log(`${part.moduleName} deactivated`)
       return ""
-    })
+    });
+
+    // タグ展開
+    text = await botDxIo.expand(text, part.botId, part.moduleName);
+
 
     // 条件タグの書き込み
     text = await replaceAsync(text, RE_COND_TAG, async (m, mode, tag) => {
@@ -240,7 +264,7 @@ export const part = {
     const stage1 = matrix.preprocess(
       script,
       part.validAvatars,
-      part.defaultAvatar
+      part.defaultAvatar,
     );
     console.assert(stage1.status === 'ok', part.moduleName, stage1.errors);
 

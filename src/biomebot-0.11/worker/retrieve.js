@@ -7,9 +7,7 @@ import {
   zeros,
   divide,
   apply,
-  concat,
   dot,
-  row,
   add,
   diag,
   multiply,
@@ -89,7 +87,8 @@ export async function retrieve(message, source, botId, noder) {
       condWeight: condWeight,
       timeWeight: timeWeight,
       prevWv: prevWv,
-      delayEffect: delayEffect
+      // delayEffect: delayEffect
+      tailing: tailing
     }
 
     messageに含まれる{?tag}{!tag}は条件タグで、都度memoryに
@@ -194,10 +193,12 @@ function generateWv(nodes, source) {
   wv = multiply(diag(invWv), wv);
 
   // 直前のwvの影響をtailingに応じて受けたwvを得る
-  let wvd = concat(source.prevWv, wv, 0);
+  // let wvd = concat(source.prevWv, wv, 0);
 
-  wvd = multiply(source.delayEffect, wvd);
-  wvd = row(wvd, 1);
+  // wvd = multiply(source.delayEffect, wvd);
+  // wvd = row(wvd, 1);
+  const wvd = add(wv, multiply(source.prevWv, source.tailing));
+
 
   return [wvd, unknown];
 }

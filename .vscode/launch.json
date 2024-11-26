@@ -8,6 +8,7 @@
             "type": "node",
             "request": "launch",
             "name": "testの実行",
+            "autoAttachChildProcesses": true,
             "skipFiles": [
                 "<node_internals>/**", "**/node_modules/**"
             ],

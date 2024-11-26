@@ -41,6 +41,7 @@ import {
   apply,
   concat,
   add,
+  resize,
   subset,
   index,
   range,
@@ -60,6 +61,7 @@ const KIND_CUE = 4;
 
 const RE_COND_TAG = /^\{(\?|!|\?!)([a-zA-Z_][a-zA-Z0-9_]*)\}/;
 const RE_LINE_END = /[、。！？｡!?.,]$/;
+const DELAY_RANGE = 4; // DelayEffectorでdelay効果が発現する最大行数
 
 /**
  * inScriptから類似度行列を生成
@@ -105,8 +107,15 @@ export function matrixize(inScript, params, noder) {
 
   similarity=(wordVector, tsWeight*cosθ, condWeight*condVector)
 
+  ■params
+  tailing
+
+  larningFactor
+  page0など、あとから学習したデータの重みづけ。originよりも学習
+  データを優先する場合は1より大きい値、originを優先する場合は
+  1より小さい値を設定する。
    */
-  const { tailing, condWeight, timeWeight } = params;
+  const { tailing, larningFactor, condWeight, timeWeight } = params;
   // console.log(params, tailing)
   let m;
   let i;
@@ -121,9 +130,9 @@ export function matrixize(inScript, params, noder) {
   for (const block of inScript) {
     const data = [];
     for (const line of block) {
-      // line=[head,text,timestamp]
+      // line=[head,text,timestamp,doc]
       const nodes = noder.nodify(line[1]);
-      data.push(nodes);
+      data.push({ nodes: nodes, doc: line[3] });
       for (const node of nodes) {
         m = node.feat.match(RE_COND_TAG);
         if (m) {
@@ -176,15 +185,15 @@ export function matrixize(inScript, params, noder) {
     i = 0;
     let wvb = zeros(block.length, wordVocabKeys.length);
     const cvb = zeros(block.length, condVocabKeys.length);
-    for (const nodes of block) {
-      for (const node of nodes) {
+    for (const data of block) {
+      for (const node of data.nodes) {
         m = node.feat.match(RE_COND_TAG);
         if (m) {
           const pos = condVocab[m[2]];
           cvb.set([i, pos], m[1] === '?' ? 1 : -1);
         } else if (node.feat in wordVocab) {
           const pos = wordVocab[node.feat];
-          wvb.set([i, pos], wvb.get([i, pos]) + 1);
+          wvb.set([i, pos], wvb.get([i, pos]) + data.doc === 'origin' ? 1.0 : larningFactor);
         }
       }
       i++;
@@ -251,7 +260,8 @@ export function matrixize(inScript, params, noder) {
     timeWeight: timeWeight,
     prevWv: zeros(1, wvSize[1]),
     prevCv: zeros(1, cvSize[1]),
-    delayEffect: delayEffector(2, tailing),
+    // delayEffect: delayEffector(2, tailing),
+    tailing: tailing
   };
 }
 
@@ -381,7 +391,7 @@ export function preprocess(script, validAvatars, defaultAvatar) {
       ts = ts ? new Date(Number(ts)) : null;
     }
 
-    return [head, text, ts];
+    return [head, text, ts, line.doc];
   };
 
   const isBlockStructureOk = (i) => {
@@ -412,7 +422,7 @@ export function preprocess(script, validAvatars, defaultAvatar) {
 
   for (let i = 0, l = script.length; i < l; i++) {
     const parsed = parseLine(script[i]);
-    let [head, text, timestamp] = parsed;
+    let [head, text, timestamp, doc] = parsed;
     // console.log(parsed);
 
     // コメント行は飛ばす
@@ -467,7 +477,7 @@ export function preprocess(script, validAvatars, defaultAvatar) {
         isBotExists = false;
         isCueOrUserExists = false;
       }
-      block.push([head, text + withLine, timestamp]);
+      block.push([head, text + withLine, timestamp, doc]);
       isCueOrUserExists = true;
       prevKind = KIND_CUE;
       continue;
@@ -477,9 +487,9 @@ export function preprocess(script, validAvatars, defaultAvatar) {
     if (head === 'user') {
       if (prevKind === KIND_USER) {
         // user行が連続する場合は{prompt}を挟む
-        block.push(['peace', `{prompt}${withLine}`, null, null]);
+        block.push(['peace', `{prompt}${withLine}`, null, doc]);
       }
-      block.push([head, text + withLine, timestamp]);
+      block.push([head, text + withLine, timestamp, doc]);
       prevKind = KIND_USER;
       isCueOrUserExists = true;
       continue;
@@ -494,7 +504,7 @@ export function preprocess(script, validAvatars, defaultAvatar) {
         const bl = block.length - 1;
         block[bl][1] += `\n${text}`;
       } else {
-        block.push([head, text]);
+        block.push([head, text, null, doc]);
       }
       isBotExists = true;
       prevKind = KIND_BOT;
@@ -513,7 +523,7 @@ export function preprocess(script, validAvatars, defaultAvatar) {
       `最終行${script[script.length - 1]}がbotの発言になっていません`
     );
   }
-
+  console.log(newScript)
   return {
     script: newScript,
     status: errors.length === 0 ? 'ok' : 'error',
@@ -529,18 +539,29 @@ export function preprocess(script, validAvatars, defaultAvatar) {
  */
 export function delayEffector(size, level) {
   /* 正方行列で、levelをlとしたとき
-   1 0 0 0
-   l 1 0 0
-   0 l 1 0
-   0 0 l 1
-   のように幅と高さがsizeの単位行列に、対角成分のひとつ下が
-   lである成分が加わった行列deを返す。
-   任意の行列 M に対して de×M をすることで上の行の情報が
-   下の行に影響を及ぼす、やまびこのような効果を与える
-  */
-  const m = identity(size);
-  let d = multiply(identity(size - 1), level);
-  d = concat(zeros(1, size - 1), d, 0);
-  d = concat(d, zeros(size, 1));
-  return add(m, d);
+   
+   [[1   0   0   0]
+    [l   1   0   0]
+    [l^2 l   1   0]
+    [l^3 l^2 l   1]]
+
+   のように幅と高さがsizeの単位行列に、対角成分のx行下が
+   l^xである成分が加わった行列deを返す。
+   任意の行列 M に対して de×M をすることで前の行の情報が
+   次の行に影響を及ぼす、やまびこのような効果を与える
+  
+   */
+  let m = identity(size, size);
+  let x = identity(size, size);
+  const z = zeros(1, size);
+  let k = 1;
+  for (let i = 1; i < size && size < DELAY_RANGE; i++) {
+    k *= level;
+    x = concat(z, x, 0); // xの上にzerosを重ね、
+    x = resize(x, [size, size]); // xの最下行を削ることでひとつ下にシフト。
+    x = multiply(x, k); // それをk倍して
+    m = add(m, x); // もとのmに加える
+  }
+  return m;
+
 }

@@ -6,7 +6,7 @@ import systemTag from '../../../static/chatbot/token/system.json';
 import personTag from '../../../static/chatbot/token/0000person.json';
 import scriptJson from '../../../static/chatbot/botModules/fairyGirl/main.json';
 import greetingScript from '../../../static/chatbot/botModules/fairyGirl/greeting.json';
-import { graphqlToScheme, graphqlToWordTag } from '../botio';
+import { graphqlToWordTag } from '../botio';
 import { preprocess, tee, matrixize } from '../worker/matrix';
 import { retrieve } from '../worker/retrieve';
 import { MessageFactory } from '../../message';

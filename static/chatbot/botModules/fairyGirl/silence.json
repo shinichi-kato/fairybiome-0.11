@@ -32,6 +32,9 @@
     "bot えーっと。",
     "",
     "user {NO_ANSWER}嬉しかった",
-    "cheer それは素敵です！"
+    "cheer それは素敵です！",
+    "",
+    "cue {UNKNOWN}",
+    "bot {UNKNOWN}って何？"
   ]
 }

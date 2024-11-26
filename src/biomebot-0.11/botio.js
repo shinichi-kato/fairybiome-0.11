@@ -402,7 +402,7 @@ export function graphqlToScheme(gqSnap, schemeName, botId) {
     // 簡易的パース
     const script = [];
     for (const line of src) {
-      script.push({ text: line });
+      script.push({ text: line, doc: 'origin' });
     }
     return script;
   };
