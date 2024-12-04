@@ -193,12 +193,7 @@ function generateWv(nodes, source) {
   wv = multiply(diag(invWv), wv);
 
   // 直前のwvの影響をtailingに応じて受けたwvを得る
-  // let wvd = concat(source.prevWv, wv, 0);
-
-  // wvd = multiply(source.delayEffect, wvd);
-  // wvd = row(wvd, 1);
   const wvd = add(wv, multiply(source.prevWv, source.tailing));
-
 
   return [wvd, unknown];
 }

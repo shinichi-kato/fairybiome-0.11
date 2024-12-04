@@ -161,7 +161,7 @@ export const part = {
     };
 
     // retention
-    part.activationLevel *= Number(await botDxIo.pickTag('{RETENTION}', part.botId, 0.8));
+    part.activationLevel *= Number(await botDxIo.pickTag('{RETENTION}', part.botId, 0.3));
 
     const retr = await retrieve(m, part.source, part.botId, part.noder);
 
@@ -184,9 +184,23 @@ export const part = {
       ・activationを行う
     */
 
-    // active状態が続いていたら会話内容を記録。
-    // activationLevelは漸減
-    if (part.activationLevel > part.calcParams.activationThreshold) {
+    const al = part.activationLevel;
+    const th = part.calcParams.activationThreshold;
+    if (th <= al) {
+      // activationが前回から続いている
+      // 会話内容を記憶
+
+      await botDxIo.memorizeLine(
+        part.latestOutput,
+        part.latestInput,
+        part.moduleId
+      );
+      await botDxIo.touchDxScheme(part.botId, part.moduleName);
+    }
+    else if (0 <= al && al < th) {
+      // 前回までactivationが続いていて、今回で終了
+      // 会話内容を記録するが、末尾に{DEACTIVATE}を追加
+      part.latestInput.text += "{DEACTIVATE}";
       await botDxIo.memorizeLine(
         part.latestOutput,
         part.latestInput,
@@ -194,8 +208,9 @@ export const part = {
       );
       await botDxIo.touchDxScheme(part.botId, part.moduleName);
 
-    } else {
-      // アクティベーション
+    }
+    else if (al > 0) {
+      // アクティブでない状態からアクティブに変化
       part.activationLevel = Number(
         await botDxIo.pickTag('{ACTIVATION}', part.botId, 1.2)
       );
