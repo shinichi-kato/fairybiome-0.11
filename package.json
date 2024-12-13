@@ -28,7 +28,8 @@
     "build": "gatsby build",
     "serve": "gatsby serve",
     "post-update": "echo \"codesandbox preview only, need an update\" && yarn upgrade --latest",
-    "test": "vitest"
+    "test": "vitest",
+    "bot-test": "vitest --run bot-script"
   },
   "devDependencies": {
     "eslint": "^7.32.0",
