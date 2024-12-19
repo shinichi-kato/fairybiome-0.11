@@ -105,6 +105,7 @@ const biomebotQuery = graphql`
               description
             }
             sourceInstanceName
+            modifiedTime
           }
         }
       }

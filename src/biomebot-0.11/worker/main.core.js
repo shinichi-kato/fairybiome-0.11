@@ -1,9 +1,63 @@
 /*
- */
+mainパート
+============================
+
+## alarms
+毎年、毎月、毎日など様々なインターバルでアラームを発火する。
+辞書内でこれに対応した{?ALARM_MONDAY}などを記述することで
+定期的イベントに対応する。
+
+### 平日 6:30に発火するイベント
+```
+days: [Monday,Tuesday,Wednesday,Thursday,Friday],
+hour: 6,
+min: 30,
+```
+daysが指定された場合、year,month,dateは無視する。
+
+### 毎日発火するイベント
+```
+hour: 6,
+min: 30,
+```
+daysが[]かつ日付がnullの場合毎日発火する
+
+### 毎年発火するイベント
+```
+year: null,
+month: 5,
+date: 7,
+```
+誕生日など毎年のイベントはmonthとdateを指定することで
+発火する。この場合指定した日の最初に起動したとき発火する。
+hour,minを指定すればその時刻を最初にまたいだときに発火する。
+
+### 一度だけ発火するイベント
+```
+year: 2025,
+month: 7,
+date: 8
+```
+年を指定すると発火する
+
+
+
+
+*/
 
 import { randomInt } from 'mathjs';
 import { botDxIo } from '../BotDxIo';
 import { MessageFactory } from '../../message';
+
+const DAY_TO_INT = {
+  'sun': 0, 'sunday': 0,
+  'mon': 1, 'monday': 1,
+  'tue': 2, 'tuesday': 2,
+  'wed': 3, 'wednesday': 3,
+  'thu': 4, 'thursday': 4,
+  'fri': 5, 'friday': 5,
+  'sat': 6, 'saturday': 6
+}
 
 
 export const main = {
@@ -32,7 +86,6 @@ export const main = {
     main.author = d.author;
     main.updatedAt = d.updatedAt;
     main.description = d.descrption;
-    main.alarms = d.alarms;
     main.avatarDir = d.avatarDir;
     main.backgroundColor = d.backgroundColor;
     main.responseIntervals = await botDxIo.readTag(
@@ -42,6 +95,8 @@ export const main = {
     main.responsePrecision = Number(
       await botDxIo.pickTag('{RESPONSE_PRECISION}', botId, 0.3)
     );
+
+    main.alarms = calcNextEvent(d.alarms);
 
     // メッセージスプールの設定
     main.proposalSpool = [];
@@ -182,6 +237,24 @@ export const main = {
     main.proposalSpool = [];
     main.replying = false;
 
+    // アラームのチェック
+    // アラームが発火した場合、アラーム名をチャットボットに送信する
+    const now = Date.now();
+    for (const alarmName in main.alarms) {
+      const alarm = main.alarms[alarmName];
+      if (alarm.nextEventTS < now) {
+        main.channel.postMessage({
+          type: 'input',
+          action: {
+            message: {
+              text: alarmName
+            }
+          }
+        });
+        alarm.nextEventTS = getNextEventTS(alarm);
+      }
+    }
+
   },
 
   reply: (action) => {
@@ -210,3 +283,77 @@ export const main = {
     main.channel.close();
   },
 };
+
+
+/**
+ * すべてのalarmに対して次のイベントが発生するtimestampを計算し、alarmに格納する
+ * @param {*} alarms 
+ */
+function calcNextEvent(alarms) {
+  for (const alarm of alarms) {
+    alarm.nextEventTS = getNextEventTS(alarm);
+  }
+  return alarms;
+}
+
+/**
+ * alarmで指定したイベントが次に発火するDate()を返す
+ * @param {*} alarm 
+ */
+function getNextEventTS(alarm) {
+  /*
+    alarm = {
+      "year": null,
+      "month": null,
+      "date": null,
+      "days": ["Monday"],
+      "hour": null,
+      "minute": null
+    }
+
+    1.daysが空でなければ指定曜日に毎週起きるイベントを生成
+    2. yearがnullの場合定期イベントを生成
+    3. 一度のみのイベントを生成
+  */
+
+  const today = new Date();
+
+  // 1.曜日画からでなければ毎週起きるイベントを生成
+
+  if (alarm.days) {
+    const days = Array.isArray(alarm.days) ? alarm.days : [alarm.days]
+    const dayToday = today.getDay();
+    let nearest = new Date();
+    nearest.setDate(nearest.getDate() + 7);
+
+    for (const d of days) {
+      const targetDay = DAY_TO_INT(d.toLowerCase())
+
+      const year = today.getFullYear();
+      const month = today.getMonth();
+      const date = today.getDate() + (targetDay - dayToday + 7) % 7
+      const hour = alarm.hour || today.getHours();
+      const min = alarm.minute || today.getMinutes();
+      const cand = Date(year, month, date, hour, min);
+      if (cand < nearest) {
+        nearest = cand;
+      }
+    }
+
+    return nearest;
+  }
+
+  // 2. yearがnullの場合定期イベントを生成
+  if (!alarm.year) {
+    const year = today.getFullYear();
+    const month = alarm.month || today.getMonth();
+    const date = alarm.date || today.getDate();
+    const hour = alarm.hour || today.getHours();
+    const min = alarm.minute || today.getMinutes();
+    return new Date(year, month, date, hour, min);
+  }
+
+  // 3. 一度のみのイベントを生成
+  return new Date(alarm.year, alarm.month, alarm.date, alarm.hour, alarm.min);
+
+}

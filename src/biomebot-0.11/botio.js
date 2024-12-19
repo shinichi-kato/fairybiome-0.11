@@ -415,7 +415,7 @@ export function graphqlToScheme(gqSnap, schemeName, botId) {
   gqSnap.forEach((node) => {
     if (node.relativeDirectory === schemeName) {
       const s = JSON.parse(node.internal.content);
-      s.updatedAt = new Date(s.updatedAt);
+      s.updatedAt = new Date(node.modifiedTime);
 
       if (scheme.updatedAt < s.updatedAt) {
         scheme.updatedAt = s.updatedAt;
