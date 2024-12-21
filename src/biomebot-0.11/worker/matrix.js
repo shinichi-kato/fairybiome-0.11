@@ -52,7 +52,7 @@ import {
   norm,
 } from 'mathjs';
 
-import { time2yearRad, time2dateRad } from '../../components/Ecosystem/dayCycle';
+import { time2yearRad, time2dateRad, timeStr2dateRad, dateStr2yearRad } from '../../components/Ecosystem/dayCycle';
 
 const RE_BLANK_LINE = /^\s*$/;
 const KIND_USER = 1;
@@ -61,6 +61,7 @@ const KIND_CUE = 4;
 
 const RE_COND_TAG = /^\{(\?|!|\?!)([a-zA-Z_][a-zA-Z0-9_]*)\}/;
 const RE_LINE_END = /[、。！？｡!?.,]$/;
+const RE_DATETIME = /\s*\((?:(\d{1,2}\/\d{1,2}))? ?(?:(\d{1,2}:\d{1,2}))?\)$/;
 const DELAY_RANGE = 4; // DelayEffectorでdelay効果が発現する最大行数
 
 /**
@@ -131,9 +132,18 @@ export function matrixize(inScript, params, noder) {
     const data = [];
     for (const line of block) {
       // line=[head,text,timestamp,doc]
+
+      // textの標準化
+      m = line[1].match(RE_LINE_END);
+      if (!m) {
+        line[1] += '。';
+      }
       const nodes = noder.nodify(line[1]);
       data.push({ nodes: nodes, doc: line[3] });
       for (const node of nodes) {
+        if (!node) {
+          console.log(nodes, line[1])
+        }
         m = node.feat.match(RE_COND_TAG);
         if (m) {
           condVocab[m[2]] = true;
@@ -239,10 +249,18 @@ export function matrixize(inScript, params, noder) {
   for (const block of inScript) {
     for (const line of block) {
       const ts = line[2];
-      timeMatrix = subset(timeMatrix, index(i, [0, 1]), [
-        time2yearRad(ts),
-        time2dateRad(ts),
-      ]);
+      if (Array.isArray(ts)) {
+        timeMatrix = subset(timeMatrix, index(i, [0, 1]), [
+          ts[0],
+          ts[1],
+        ]);
+      } else {
+        timeMatrix = subset(timeMatrix, index(i, [0, 1]), [
+          time2yearRad(ts),
+          time2dateRad(ts),
+        ]);
+
+      }
       i++;
     }
   }
@@ -370,6 +388,8 @@ export function preprocess(script, validAvatars, defaultAvatar) {
     let head = '';
     let text = '';
     let ts = null;
+    let date = null;
+    let time = null;
 
     if ('head' in line) {
       head = line.head;
@@ -389,6 +409,18 @@ export function preprocess(script, validAvatars, defaultAvatar) {
     } else {
       [text, ts] = text.split('\t', 2);
       ts = ts ? new Date(Number(ts)) : null;
+
+      const m = text.match(RE_DATETIME);
+      if (m) {
+        if (m[1]) {
+          time = timeStr2dateRad(m[1]);
+        }
+        if (m[2]) {
+          date = dateStr2yearRad(m[2]);
+        }
+        text = text.replace(RE_DATETIME, '');
+        ts = [date, time]
+      }
     }
 
     return [head, text, ts, line.doc];
@@ -458,11 +490,6 @@ export function preprocess(script, validAvatars, defaultAvatar) {
       continue;
     }
 
-    // textの標準化
-    const m = text.match(RE_LINE_END);
-    if (!m) {
-      text += '。';
-    }
 
     // cue行
     if (head === 'cue') {
@@ -548,7 +575,7 @@ export function delayEffector(size, level) {
    のように幅と高さがsizeの単位行列に、対角成分のx行下が
    l^xである成分が加わった行列deを返す。
    任意の行列 M に対して de×M をすることで前の行の情報が
-   次の行に影響を及ぼす、やまびこのような効果を与える
+   次の行に影響を及ぼす、残響のような効果を与える
   
    */
   let m = identity(size, size);

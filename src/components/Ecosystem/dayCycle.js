@@ -74,7 +74,7 @@ export function isToday(t) {
 export function getTodayCycle(timestamp = null) {
   timestamp ||= new Date();
 
-  const f = new Intl.DateTimeFormat('jp', {dateStyle: 'medium'});
+  const f = new Intl.DateTimeFormat('jp', { dateStyle: 'medium' });
 
   const date = f.format(timestamp).replaceAll('/', '-');
   const noon = new Date(`${date}T12:00:00+09:00`).valueOf();
@@ -82,18 +82,18 @@ export function getTodayCycle(timestamp = null) {
   const sunset = getSunset(timestamp).valueOf();
 
   const events = [
-    {ts: new Date(noon - 12 * 60 * 60 * 1000), name: 'MIDNIGHT'},
-    {ts: new Date(sunrise - 60 * 60 * 1000), name: 'DAWN'},
-    {ts: new Date(sunrise - 10 * 60 * 1000), name: 'SUNRISE'},
-    {ts: new Date(sunrise + 10 * 60 * 1000), name: 'MORNING'},
-    {ts: new Date(sunrise + 120 * 60 * 1000), name: 'LATE_MORNING'},
-    {ts: new Date(noon - 60 * 60 * 1000), name: 'NOON'},
-    {ts: new Date(noon + 60 * 60 * 1000), name: 'AFTERNOON'},
-    {ts: new Date(sunset - 60 * 60 * 1000), name: 'EVENING'},
-    {ts: new Date(sunset - 10 * 60 * 1000), name: 'SUNSET'},
-    {ts: new Date(sunset + 10 * 60 * 1000), name: 'DUSK'},
-    {ts: new Date(sunset + 60 * 60 * 1000), name: 'NIGHT'},
-    {ts: new Date(noon + 12 * 60 * 60 * 1000), name: 'MIDNIGHT'},
+    { ts: new Date(noon - 12 * 60 * 60 * 1000), name: 'MIDNIGHT' },
+    { ts: new Date(sunrise - 60 * 60 * 1000), name: 'DAWN' },
+    { ts: new Date(sunrise - 10 * 60 * 1000), name: 'SUNRISE' },
+    { ts: new Date(sunrise + 10 * 60 * 1000), name: 'MORNING' },
+    { ts: new Date(sunrise + 120 * 60 * 1000), name: 'LATE_MORNING' },
+    { ts: new Date(noon - 60 * 60 * 1000), name: 'NOON' },
+    { ts: new Date(noon + 60 * 60 * 1000), name: 'AFTERNOON' },
+    { ts: new Date(sunset - 60 * 60 * 1000), name: 'EVENING' },
+    { ts: new Date(sunset - 10 * 60 * 1000), name: 'SUNSET' },
+    { ts: new Date(sunset + 10 * 60 * 1000), name: 'DUSK' },
+    { ts: new Date(sunset + 60 * 60 * 1000), name: 'NIGHT' },
+    { ts: new Date(noon + 12 * 60 * 60 * 1000), name: 'MIDNIGHT' },
   ];
 
   return events;
@@ -165,7 +165,7 @@ export function time2yearRad(t) {
     return NaN;
   }
   if (typeof t === 'object' && 'seconds' in t) {
-    t = new Date(t.seconds*1000);
+    t = new Date(t.seconds * 1000);
   }
 
   const ty = t.toLocaleDateString().slice(0, 4);
@@ -189,7 +189,7 @@ export function time2dateRad(t) {
     return NaN;
   }
   if (typeof t === 'object' && 'seconds' in t) {
-    t = new Date(t.seconds*1000);
+    t = new Date(t.seconds * 1000);
   }
 
   const ts = t.toLocaleTimeString('jp');
@@ -197,6 +197,32 @@ export function time2dateRad(t) {
   const ms = Number(h) * 60 * 60 + Number(m) * 60 + Number(s);
   const msStart = 0;
   const msEnd = 23 * 60 * 60 + 59 * 60 + 59;
+  const rad = ((ms - msStart) / (msEnd - msStart)) * 2.0 * Math.PI;
+  return rad;
+}
+
+/**
+ * 00:00というフォーマットの文字列をradに変換
+ * @param {*} str
+ */
+export function timeStr2dateRad(str) {
+  const [h, m] = str.split(':');
+  const ms = Number(h) * 60 * 60 + Number(m) * 60;
+  const msStart = 0;
+  const msEnd = 23 * 60 * 60 + 59 * 60;
+  const rad = ((ms - msStart) / (msEnd - msStart)) * 2.0 * Math.PI;
+  return rad;
+}
+
+/**
+ * 12/23というフォーマットの文字列をradに変換
+ * @param {*} str
+ */
+export function dateStr2yearRad(str) {
+  const [m, d] = str.split('/');
+  const ms = Number(m) * 31 + Number(d);
+  const msStart = 0;
+  const msEnd = 12 * 31 + 31;
   const rad = ((ms - msStart) / (msEnd - msStart)) * 2.0 * Math.PI;
   return rad;
 }

@@ -1,0 +1,12 @@
+/* documentページ用のcss */
+/* ページ全体は左右に余白をもたせる*/
+body {
+  margin: 0 10px;
+}
+/* コードブロックは背景が明るい茶色でコーナーが丸い */
+pre {
+  background-color: #fab9b9;
+  margin: 1.5em 10px;
+  padding: 0.5em 10px;
+  border-radius: 4px;
+}

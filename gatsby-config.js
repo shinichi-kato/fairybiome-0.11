@@ -45,6 +45,14 @@ module.exports = {
       },
     },
     {
+      resolve: `gatsby-source-filesystem`,
+      options: {
+        name: `content`,
+        path: `${__dirname}/src/content`,
+      },
+    },
+    `gatsby-transformer-remark`,
+    {
       resolve: `gatsby-transformer-json`,
       options: {
         typeName: `Json`,

@@ -290,7 +290,8 @@ export const main = {
  * @param {*} alarms 
  */
 function calcNextEvent(alarms) {
-  for (const alarm of alarms) {
+  for (const alarmName in alarms) {
+    const alarm = alarms[alarmName];
     alarm.nextEventTS = getNextEventTS(alarm);
   }
   return alarms;
@@ -327,7 +328,7 @@ function getNextEventTS(alarm) {
     nearest.setDate(nearest.getDate() + 7);
 
     for (const d of days) {
-      const targetDay = DAY_TO_INT(d.toLowerCase())
+      const targetDay = DAY_TO_INT[d.toLowerCase()];
 
       const year = today.getFullYear();
       const month = today.getMonth();

@@ -65,6 +65,12 @@ import { TinySegmenter } from './tinysegmenter';
 import { botDxIo } from '../BotDxIo';
 
 const RE_TAG = /\{(\?|\?!|!|\+|-|)[a-zA-Z_][a-zA-Z_0-9]*\}/g;
+// "？\v"にマッチする正規表現
+const RE_INVALID_NODE = /(.)\ck/;
+
+
+
+
 const POST_PA = {
   が: '格助詞',
   を: '格助詞',
@@ -192,12 +198,15 @@ export class Noder {
         if (seg === '\v') {
           phase = 1;
           continue;
-        } else if (seg === '？\v') {
-          // tinesegmenterで予期せぬsegが作られる。
-          // そのパッチ的対策
-          nodes.push(new Node('？', '？'));
-          phase = 1;
-          continue;
+        } else {
+          const m = seg.match(RE_INVALID_NODE);
+          if (m) {
+            // tinysegmenterで予期せぬsegが作られる。
+            // その場合\vの前の文字をノードとして取り込む
+            nodes.push(new Node(m[1], m[1]));
+            phase = 1;
+            continue;
+          }
         }
       } else if (phase === 1) {
         const t = tagDict[seg];
