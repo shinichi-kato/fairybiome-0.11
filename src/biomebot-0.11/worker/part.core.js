@@ -3,6 +3,7 @@ import replaceAsync from 'string-replace-async';
 import { botDxIo } from '../BotDxIo';
 import { Noder } from './noder';
 import { retrieve } from './retrieve';
+import { dxIO } from '../dxIO';
 import * as matrix from './matrix';
 
 const DEFAULT_PARAM = {
@@ -30,11 +31,12 @@ export const part = {
 
   deploy: async (action) => {
     const { botId, moduleName, validAvatars } = action;
-    const p = await botDxIo.downloadDxModule(botId, moduleName);
+    // const p = await botDxIo.downloadDxModule(botId, moduleName);
+    const p = await dxIO.downloadDxModule(botId, moduleName);
     part.botId = botId;
-    part.moduleId = p.fsId;
-    part.schemeName = p.data.schemeName;
-    part.moduleName = p.data.moduleName;
+    // part.moduleId = p.fsId;
+    part.schemeName = p.schemeName;
+    part.moduleName = moduleName;
     part.validAvatars = validAvatars;
     part.defaultAvatar = await botDxIo.pickTag(
       '{DEFAULT_AVATAR}',
@@ -275,8 +277,10 @@ export const part = {
 
   _calc_matrix: async () => {
     // scriptをDBから取得。形式は[{test,timestamp}]
-    const script = await botDxIo.downloadDxScript(part.moduleId);
-    const stage1 = matrix.preprocess(
+    // const script = await botDxIo.downloadDxScript(part.moduleId);
+    const script = await dxIO.downloadDxScriptByName(part.botId, part.moduleName);
+
+    const stage1 = matrix.preprocess2(
       script,
       part.validAvatars,
       part.defaultAvatar,

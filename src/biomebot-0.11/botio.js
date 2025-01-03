@@ -220,10 +220,11 @@ async function uploadFsScheme(firestore, scheme, fsScheme) {
       const gqScript = [];
       const origin = [];
       const page0 = [];
-      for (const item of data.script) {
-        if (item.text.startsWith('{')) {
-          // タグ行は飛ばす
-          continue;
+      for (let item of data.script) {
+        // タイムスタンプを可読形式に変換
+        const [text, ts] = item.text.split('\t');
+        if (ts) {
+          item.text = `${text} (${ts2str(ts)})`;
         }
         if (!('doc' in item)) {
           // 初期のgraphqlから得たデータにはdoc,id情報がないため
@@ -455,4 +456,13 @@ export function graphqlToWordTag(gqSnap) {
     }
   }
   return valueTagList;
+}
+
+/**
+ * Date()で生成されるタイムスタンプをmm/dd hh:mm形式に変換
+ * @param {ts} ts タイムスタンプ
+ */
+function ts2str(ts) {
+  const d = new Date(Number(ts));
+  return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${d.getMinutes()}`;
 }

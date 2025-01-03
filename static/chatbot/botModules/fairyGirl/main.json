@@ -14,6 +14,23 @@
       "minute": null
     }
   },
+  "settings": {
+    "description": "説明",
+    "author": "system",
+    "avatarDir": "fairy-girl",
+    "backgroundColor": "#de53a1",
+
+    "alarms": {
+      "{ALARM_MONDAY}": {
+        "year": null,
+        "month": null,
+        "date": null,
+        "days": "Monday",
+        "hour": null,
+        "minute": null
+      }
+    }
+  },
   "updatedAt": "2024-11-17T06:04:05.000Z",
   "script": [
     "{BOT_NAME} undefined",

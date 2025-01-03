@@ -60,6 +60,7 @@ const KIND_BOT = 2;
 const KIND_CUE = 4;
 
 const RE_COND_TAG = /^\{(\?|!|\?!)([a-zA-Z_][a-zA-Z0-9_]*)\}/;
+const RE_LINE = /^([a-zA-Z0-9]+)\s+(.+)$/;
 const RE_LINE_END = /[、。！？｡!?.,]$/;
 const RE_DATETIME = /\s*\((?:(\d{1,2}\/\d{1,2}))? ?(?:(\d{1,2}:\d{1,2}))?\)$/;
 const DELAY_RANGE = 4; // DelayEffectorでdelay効果が発現する最大行数
@@ -240,7 +241,7 @@ export function matrixize(inScript, params, noder) {
   /* -----------------------------------------------------
 
            タイムスタンプ行列(2列)の生成
-     [ts,ts]がretrieveの際に[date,time]として扱われる
+     [date,time]を格納
 
   -------------------------------------------------------  */
 
@@ -330,103 +331,91 @@ export function tee(script) {
 }
 
 /**
- * パートスクリプトの前処理
+ * パートスクリプトの前処理 ver2
  * @param {Array} script パートスクリプト
  * @param {Array} validAvatars 有効なavatarのリスト
  * @param {String} defaultAvatar 「bot」で始まる行で使うavatar
  * @return {array} [前処理済みスクリプト,エラー]
  */
-export function preprocess(script, validAvatars, defaultAvatar) {
-  /* スクリプトはuploadされるときにタグ定義文が削除され、タグ定義は
-     db.memoryに格納される。
+export function preprocess2(script, validAvatars, defaultAvatar) {
+  /*
+  スクリプトはuploadされるときタグ定義文と分離され、scriptには
+  origin,page0などのソースデータが格納される。
+  preprocess2は以下のフォーマットに従ったscriptを仮定する。
+  [
+    {i: 行番号, line: 行の内容 }, ...
+  ]
+  
+  lineの書式
+  # コメント行
+  head text(MM/DD hh:mm)
+  head text(MM/DD)
+  head text(hh:mm)
 
-     preprocessはは以下のフォーマットに従ったscriptを仮定する。
-     [
-      {
-        text:"head text{ecoState}",
-        timestamp: timestamp
-      },...
-     ]
-     head: "bot", validAvatars, "user", "cue"のいずれか
-     text: 台詞
-     timstamp: 発言の行われた日付時刻(valueOf()形式)
-     ecoState: 天候とロケーションの情報をコード化したもの
-     textは必須でtimestamp,ecoStateはoptional
+  headはvalidAvatarsのうちのいずれか、またはcue,bot,userのいずれか。
+  textはセリフで中にタグを含んでも良い。
+
+  scriptに対して以下の処理を行う。
+  ・with行に書かれた内容は以降のline末尾にコピーされる。
+  ・一つの話題をブロックと呼び、
+    ブロックは空行、eco行で区切られる。
+  ・userの連続した発言は間にbot {prompt}行を自動で追加する。
+  ・botの連続した発言は\nで区切られた一つの行に統合する。
+  ・botで始まる行は{DEFAULT_AVATAR}で定義されるavatarに読み替える
+  ・validAvatarsにないvatarが指定されたらdefaultAvatarに読み替える
+  ・blockにuser行もenv行も含まれない場合前のブロックの続きとみなす
+  ・blockにbot行が含まれない場合{prompt}で補う
+  ・block末尾のoutScriptに{DEACTIVATE}を追加する
 
 
-     scriptに対して以下の処理を行う。
-     ・with行に書かれた内容は以降のline末尾にコピーされる。
-     ・一つの話題をブロックと呼び、
-       ブロックは空行、eco行で区切られる。
-     ・userの連続した発言は間にbot {prompt}行を自動で追加する。
-     ・botの連続した発言は\nで区切られた一つの行に統合する。
-     ・botで始まる行は{DEFAULT_AVATAR}で定義されるavatarに読み替える
-     ・validAvatarsにないvatarが指定されたらdefaultAvatarに読み替える
-     ・blockにuser行もenv行も含まれない場合前のブロックの続きとみなす
-     ・blockにbot行が含まれない場合{prompt}で補う
-     ・block末尾のoutScriptに{DEACTIVATE}を追加する
-
-
-     出力する中間スクリプトは以下のフォーマットに従う
-     [
-      [                         # block
-        [head,text,timestamp],  # corpus
-        ...
-      ],
-      ...
-     ]
+  出力する中間スクリプトは以下のフォーマットに従う
+  [
+  [                         # block
+    [head,text,timestamp],  # corpus
+    ...
+  ],
+  ...
+  ]
   */
+
   const newScript = [];
   let withLine = '';
   let prevKind = null;
   let block = [];
   let isCueOrUserExists = false;
   let isBotExists = false;
+  let isStartsWithInput = false;
   const errors = [];
 
   const parseLine = (line) => {
     let head = '';
     let text = '';
-    let ts = null;
-    let date = null;
     let time = null;
-
-    if ('head' in line) {
-      head = line.head;
-      text = line.text;
-    } else if (line.text !== '') {
-      const pos = line.text.indexOf(' ');
-      head = line.text.slice(0, pos);
-      text = line.text.slice(pos + 1);
-    }
-
-    if ('timestamp' in line) {
-      if ('seconds' in line.timestamp) {
-        ts = new Date(line.timestamp.seconds * 1000);
-      } else {
-        ts = line.timestamp;
-      }
-    } else {
-      [text, ts] = text.split('\t', 2);
-      ts = ts ? new Date(Number(ts)) : null;
-
-      const m = text.match(RE_DATETIME);
-      if (m) {
-        if (m[1]) {
-          time = timeStr2dateRad(m[1]);
+    let date = null;
+    const m = line.match(RE_LINE);
+    if (m) {
+      head = m[1];
+      text = m[2];
+      const t = text.match(RE_DATETIME);
+      if (t) {
+        if (t[1]) {
+          date = dateStr2yearRad(t[1])
         }
-        if (m[2]) {
-          date = dateStr2yearRad(m[2]);
+        if (t[2]) {
+          time = timeStr2dateRad(t[2]);
         }
         text = text.replace(RE_DATETIME, '');
-        ts = [date, time]
       }
     }
+    return [head, text, [date, time]];
 
-    return [head, text, ts, line.doc];
   };
 
   const isBlockStructureOk = (i) => {
+    if (!isStartsWithInput) {
+      errors.push(`${i}行目: ブロックがcueまたはuserで始まっていません`);
+      return false;
+    }
     if (!isCueOrUserExists) {
       errors.push(`${i}行目: ブロックに cueまたはuser行が含まれていません`);
       return false;
@@ -452,10 +441,16 @@ export function preprocess(script, validAvatars, defaultAvatar) {
     scriptAvatars[va] = va;
   }
 
-  for (let i = 0, l = script.length; i < l; i++) {
-    const parsed = parseLine(script[i]);
-    let [head, text, timestamp, doc] = parsed;
-    // console.log(parsed);
+  // console.log(script)
+  for (const i in script) {
+    const item = script[i];
+    const parsed = parseLine(item.line);
+    let [head, text, ts] = parsed;
+
+    // タグ行は飛ばす
+    if (head.startsWith('{')) {
+      continue;
+    }
 
     // コメント行は飛ばす
     if (head.startsWith('#')) {
@@ -484,12 +479,12 @@ export function preprocess(script, validAvatars, defaultAvatar) {
         block = [];
         isBotExists = false;
         isCueOrUserExists = false;
+        isStartsWithInput = false;
         prevKind = null;
 
       }
       continue;
     }
-
 
     // cue行
     if (head === 'cue') {
@@ -503,20 +498,25 @@ export function preprocess(script, validAvatars, defaultAvatar) {
         block = [];
         isBotExists = false;
         isCueOrUserExists = false;
+
       }
-      block.push([head, text + withLine, timestamp, doc]);
+      block.push([head, text + withLine, ts, item.page]);
       isCueOrUserExists = true;
+      isStartsWithInput = true;
       prevKind = KIND_CUE;
       continue;
     }
 
     // user行
     if (head === 'user') {
+      if (block.length === 0) {
+        isStartsWithInput = true;
+      }
       if (prevKind === KIND_USER) {
         // user行が連続する場合は{prompt}を挟む
-        block.push(['peace', `{prompt}${withLine}`, null, doc]);
+        block.push(['peace', `{prompt}${withLine}`, item.page]);
       }
-      block.push([head, text + withLine, timestamp, doc]);
+      block.push([head, text + withLine, ts, item.page]);
       prevKind = KIND_USER;
       isCueOrUserExists = true;
       continue;
@@ -531,19 +531,18 @@ export function preprocess(script, validAvatars, defaultAvatar) {
         const bl = block.length - 1;
         block[bl][1] += `\n${text}`;
       } else {
-        block.push([head, text, null, doc]);
+        block.push([head, text, null, item.page]);
       }
       isBotExists = true;
       prevKind = KIND_BOT;
       continue;
     }
-    errors.push(`${i}行目:${head} ${text} ${timestamp}は正常ではありません`);
+    errors.push(`${i}行目:${item.line}は正常ではありません`);
   }
 
   if (block.length !== 0) {
     newScript.push(block);
   }
-
   if (prevKind !== KIND_BOT) {
     // 最後はbot行で終わること
     errors.push(

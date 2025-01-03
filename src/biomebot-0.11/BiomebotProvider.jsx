@@ -69,7 +69,8 @@ import {useStaticQuery, graphql} from 'gatsby';
 import {collection, addDoc /*serverTimestamp*/} from 'firebase/firestore';
 
 import {AuthContext} from '../components/Auth/AuthProvider';
-import {syncCache, findDefaultBotId} from './botio';
+// import {syncCache, findDefaultBotId} from './botio';
+import {findActiveBotId, syncActiveBot} from './botIO2';
 
 import MainWorker from './worker/main.worker';
 import PartWorker from './worker/part.worker';
@@ -127,13 +128,13 @@ const getChatbotSnap = (biomebotSnap) => {
   return snap;
 };
 
-const getTokenSnap = (biomebotSnap) => {
-  const snap = [];
-  biomebotSnap.allJson.nodes.forEach((node) => {
-    if (node.parent.sourceInstanceName === 'token') snap.push(node.token);
-  });
-  return snap;
-};
+// const getTokenSnap = (biomebotSnap) => {
+//   const snap = [];
+//   biomebotSnap.allJson.nodes.forEach((node) => {
+//     if (node.parent.sourceInstanceName === 'token') snap.push(node.token);
+//   });
+//   return snap;
+// };
 
 const getValidBotAvatars = (biomebotSnap, avatarDir) => {
   const avatars = [];
@@ -363,26 +364,25 @@ export default function BiomebotProvider({
     if (state.channel && auth.uid && firestore) {
       (async () => {
         const chatbotSnap = getChatbotSnap(biomebotSnap);
-        const [botId, targetSchemeName] = await findDefaultBotId(
+        const botId = await findActiveBotId(
+          firestore,
           auth.uid,
           schemeName,
           chatbotSnap
         );
-
-        // データの同期
-        const mods = await syncCache(
+        const mods = await syncActiveBot(
+          chatbotSnap,
           firestore,
-          {
-            chatbot: chatbotSnap,
-            token: getTokenSnap(biomebotSnap),
-          },
-          targetSchemeName,
           botId,
           auth.uid
         );
+
         dispatch({type: 'setBotId', botId: botId, numOfModules: mods.length});
 
+        // ----------------------------------------------------------
+
         // はじめにmainModuleをdeployする。
+
         const mi = mods.indexOf('main');
         const newMain = new MainWorker();
         newMain.onmessage = function (event) {

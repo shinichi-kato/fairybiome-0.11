@@ -48,6 +48,7 @@ date: 8
 import { randomInt } from 'mathjs';
 import { botDxIo } from '../BotDxIo';
 import { MessageFactory } from '../../message';
+import { dxIO } from '../dxIO';
 
 const DAY_TO_INT = {
   'sun': 0, 'sunday': 0,
@@ -76,9 +77,11 @@ export const main = {
    * @return {Object} botRepr
    */
   deploy: async ({ worker, botId, summon }) => {
-    const m = await botDxIo.downloadDxModule(botId, 'main');
-    console.log(m)
-    const d = m.data;
+    // const m = await botDxIo.downloadDxModule(botId, 'main');
+    const d = await dxIO.downloadDxModule(botId, 'main');
+
+    console.log(d)
+    // const d = m.data;
     main.worker = worker;
     main.botId = botId;
     main.summon = summon;
