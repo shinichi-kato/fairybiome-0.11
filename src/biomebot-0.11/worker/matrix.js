@@ -11,9 +11,9 @@ matrix
 {DEFALUT_AVATAR} xxx (optional)
 {userTag} ,... (optional)
 with {?tag} 指定したタグはユーザ発言には暗黙的に必ず付属するとみなす
-user text\ttimestamp ユーザ入力
-peace text\ttimestamp チャットボットの返答（avatar指定)
-bot text\ttimestamp
+user text (12/20 13:00) ユーザ入力
+peace text (13:12) チャットボットの返答（avatar指定)
+bot text
 cue tag
 ```
 # で始まる行はコメント行で無視する。
@@ -22,10 +22,11 @@ cue tag
 with で始まる行はユーザの発言には暗黙的にwithより後ろの内容が続くとみなす。
 
 コーパス部分は以下の書式。
-user text{ecoState}\t{timestamp}
+user text{ecoState} {timestamp}
 {ecoState}は天候、場所などecosystemが提供する状態を示すタグ。
 timestampを追加すると、特徴量として扱われる。timestampは
-timestamp.toValue()で得られる値(msec)
+日付を指定するには(MM/DD)、時刻は(hh:mm)、 日付と時刻を同時に
+指定する際は(MM/DD hh:mm)という形式で記載する。
 
 会話ログは加工せず辞書化できるようにする。そのため
 1. user行が連続したらbotのpromptを挟む
@@ -271,7 +272,7 @@ export function matrixize(inScript, params, noder) {
     wordVocabLength: wordVocabKeys.length,
     condVocabLength: condVocabKeys.length,
     wordVocab: wordVocab,
-    condVocab: condVocab === 0 ? zeros(1, 1) : condVocab,
+    condVocab: condVocab,
     wordMatrix: wv,
     condMatrix: cv,
     timeMatrix: timeMatrix,
@@ -337,11 +338,11 @@ export function tee(script) {
  * @param {String} defaultAvatar 「bot」で始まる行で使うavatar
  * @return {array} [前処理済みスクリプト,エラー]
  */
-export function preprocess2(script, validAvatars, defaultAvatar) {
+export function preprocess(script, validAvatars, defaultAvatar) {
   /*
   スクリプトはuploadされるときタグ定義文と分離され、scriptには
   origin,page0などのソースデータが格納される。
-  preprocess2は以下のフォーマットに従ったscriptを仮定する。
+  preprocessは以下のフォーマットに従ったscriptを仮定する。
   [
     {i: 行番号, line: 行の内容 }, ...
   ]

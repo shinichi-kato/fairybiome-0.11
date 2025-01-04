@@ -1,5 +1,6 @@
 import Dexie from 'dexie';
 import { Dbio } from '../dbio';
+import { replacer, reviver, typeOf } from 'mathjs';
 
 const RE_TAG_LINE = /^(\{[a-zA-Z0-9_]+\}) (.+)$/;
 
@@ -173,6 +174,147 @@ class DxIO extends Dbio {
 
   }
 
+  /**
+   * moduleName関連のキャッシュを削除
+   * @param {} botId
+   * @param {} moduleName
+   */
+  async deleteCache(botId, moduleName) {
+    return await this.db.cache
+      .where('[botId+moduleName+key]')
+      .between([botId, moduleName, Dexie.minKey], [botId, moduleName, Dexie.maxKey])
+      .delete();
+  }
+
+  /**
+ * part.sourceのcache化
+ * @param {} botId 
+ * @param {*} source 
+ */
+  async cacheSource(botId, source) {
+    // moduleName: moduleName, // string
+    // status: 'ok', // string
+    // wordVocabLength: wordVocabKeys.length, // Number
+    // condVocabLength: condVocabKeys.length, // Number
+    // wordVocab: wordVocab, // dict
+    // condVocab: condVocab === 0 ? zeros(1, 1) : condVocab, // matrix
+    // wordMatrix: wv, // matrix
+    // condMatrix: cv, // matrix
+    // timeMatrix: timeMatrix, // matrix
+    // condWeight: condWeight, // matrix
+    // timeWeight: timeWeight, // matrix
+    // prevWv: zeros(1, wvSize[1]), //matrix
+    // prevCv: zeros(1, cvSize[1]), // matrix
+    // tailing: tailing // Number
+    const keys = Object.keys(source);
+
+    for (const key of keys) {
+      if (key === 'moduleName') {
+        continue;
+      }
+      const s = source[key];
+      const keyType = typeOf(s);
+      let value = null;
+      switch (keyType) {
+        case 'string':
+          value = s;
+          break;
+        case 'number':
+          value = s;
+          break;
+        case 'Array':
+          value = s;
+          break;
+        case 'Object':
+          value = s;
+          break;
+        case 'DenseMatrix':
+          value = JSON.stringify(s, replacer)
+          break;
+        case 'SparseMatrix':
+          value = JSON.stringify(s, replacer)
+          break;
+        default:
+          throw new Error(`${key} (${keyType}) not supported`)
+      }
+      await this.db.cache.put({
+        botId: botId,
+        moduleName: source.moduleName,
+        key: key,
+        keyType: keyType,
+        value: value
+      });
+    }
+  }
+
+  async readSource(botId, moduleName) {
+    const data = await this.db.cache
+      .where('[botId+moduleName+key]')
+      .between([botId, moduleName, Dexie.minKey], [botId, moduleName, Dexie.maxKey])
+      .toArray();
+    if (data.length === 0) {
+      return false;
+    }
+    const source = {};
+    for (const item of data) {
+      switch (item.keyType) {
+        case 'string':
+          source[item.key] = item.value;
+          break;
+        case 'number':
+          source[item.key] = item.value;
+          break;
+        case 'Array':
+          source[item.key] = item.value;
+          break;
+        case 'Object':
+          source[item.key] = item.value;
+          break;
+        case 'DenseMatrix':
+          source[item.key] = JSON.parse(item.value, reviver);
+          break;
+        case 'SparseMatrix':
+          source[item.key] = JSON.parse(item.value, reviver)
+      }
+    }
+    return source;
+
+  }
+
+  async writeTokens(items) {
+    // itemsは ["{0100} 色々,いろんな,色々な,様々な,多様な",]という形式。
+    // これを「色々」→{0100}というタグ化辞書に変形する
+
+    // 一旦削除して書き換える
+    let writeCount = 0;
+    await this.db.wordTag.toCollection().delete();
+
+    for (const item of items) {
+      const m = item.match(RE_TAG_LINE);
+      if (m) {
+        const tag = m[1];
+        for (const w of m[2].split(',')) {
+          const word = w.trim();
+          const node = await this.db.wordTag.where('word').equals(w).first();
+          if (node) {
+            console.warn('wordTag duplicated, overwritten', node);
+            await this.db.wordTag.update(node.id, { word: word, tag: tag });
+          } else {
+            await this.db.wordTag.add({
+              tag: tag,
+              word: word,
+            });
+          }
+          writeCount++;
+        }
+      }
+    }
+
+    if (writeCount > 0) {
+      console.log(`${writeCount} word are updated`)
+    }
+
+  }
 }
 
 

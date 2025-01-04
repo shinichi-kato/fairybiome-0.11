@@ -107,7 +107,7 @@ export class Dbio {
     this.db.version(2).stores({
       index: 'botId',
       script: '[botId+moduleName+page]',
-      cache: '[botId+moduleName]'
+      cache: '[botId+moduleName+key]'
     });
     this.db.version(1).stores({
       botModules: '[data.botId+data.moduleName]',

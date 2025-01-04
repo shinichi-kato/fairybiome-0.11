@@ -128,13 +128,32 @@ const getChatbotSnap = (biomebotSnap) => {
   return snap;
 };
 
-// const getTokenSnap = (biomebotSnap) => {
-//   const snap = [];
-//   biomebotSnap.allJson.nodes.forEach((node) => {
-//     if (node.parent.sourceInstanceName === 'token') snap.push(node.token);
-//   });
-//   return snap;
-// };
+/**
+ * token関連のsnapを抽出
+ * @param {*} biomebotSnap
+ */
+const getTokenSnap = (biomebotSnap) => {
+  // snap={
+  //   modifiedTime: date, // sourceInstanceNameがtokenであるデータのmodifiedTimeのうち最新のタイムスタンプ
+  //   vales: [], // 全トークン
+  // }
+  let newestTs = new Date(0);
+  const values = [];
+  biomebotSnap.allJson.nodes.forEach((node) => {
+    if (node.parent.sourceInstanceName === 'token') {
+      const ts = new Date(node.parent.modifiedTime);
+      if (ts > newestTs) {
+        newestTs = ts;
+      }
+      values.push(...node.token.values);
+    }
+  });
+
+  return {
+    modifiedTime: newestTs,
+    values: values,
+  };
+};
 
 const getValidBotAvatars = (biomebotSnap, avatarDir) => {
   const avatars = [];
@@ -364,17 +383,20 @@ export default function BiomebotProvider({
     if (state.channel && auth.uid && firestore) {
       (async () => {
         const chatbotSnap = getChatbotSnap(biomebotSnap);
+        const tokenSnap = getTokenSnap(biomebotSnap);
         const botId = await findActiveBotId(
           firestore,
           auth.uid,
           schemeName,
           chatbotSnap
         );
+
         const mods = await syncActiveBot(
           chatbotSnap,
           firestore,
           botId,
-          auth.uid
+          auth.uid,
+          tokenSnap
         );
 
         dispatch({type: 'setBotId', botId: botId, numOfModules: mods.length});

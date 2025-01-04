@@ -3,7 +3,7 @@ import { randomInt } from 'mathjs';
 import replaceAsync from 'string-replace-async';
 import { Dbio } from '../dbio';
 
-const RE_TAG_LINE = /^(\{[a-zA-Z0-9_]+\}) (.+)$/;
+// const RE_TAG_LINE = /^(\{[a-zA-Z0-9_]+\}) (.+)$/;
 const RE_EXPAND_TAG = /\{([a-zA-Z_][a-zA-Z0-9_]*)\}/;
 const RE_WORD_TAG = /\{([0-9]+)\}/;
 const LI_LOWERCASE = 'abcdefghijklmnopqrstuvwxyz'.split('');
@@ -18,10 +18,10 @@ class BotDxIo extends Dbio {
   constructor() {
     super();
     this.getModuleNames = this.getModuleNames.bind(this);
-    this.uploadDxScheme = this.uploadDxScheme.bind(this);
-    this.downloadDxScheme = this.downloadDxScheme.bind(this);
+    // this.uploadDxScheme = this.uploadDxScheme.bind(this);
+    // this.downloadDxScheme = this.downloadDxScheme.bind(this);
     this.touchDxScheme = this.touchDxScheme.bind(this);
-    this.downloadDxModule = this.downloadDxModule.bind(this);
+    // this.downloadDxModule = this.downloadDxModule.bind(this);
     this.downloadDxScript = this.downloadDxScript.bind(this);
     this.downloadDxMemory = this.downloadDxMemory.bind(this);
     this.updateTagValue = this.updateTagValue.bind(this);
@@ -57,50 +57,50 @@ class BotDxIo extends Dbio {
     return mods;
   }
 
-  /**
-   * indexedDBにscheme形式で受け取ったデータを保存。memory,scriptを含む
-   * @param {Object} scheme
-   */
-  async uploadDxScheme(scheme) {
-    // indexedDBへのアップロード。
+  // /**
+  //  * indexedDBにscheme形式で受け取ったデータを保存。memory,scriptを含む
+  //  * @param {Object} scheme
+  //  */
+  // async uploadDxScheme(scheme) {
+  //   // indexedDBへのアップロード。
 
-    for (const module of scheme.botModules) {
-      await this.db.botModules.put({
-        fsId: module.fsId,
-        data: {
-          ...module.data,
-          script: 'on script db/memory db', // moduleの中からscriptを除外
-        },
-      });
+  //   for (const module of scheme.botModules) {
+  //     await this.db.botModules.put({
+  //       fsId: module.fsId,
+  //       data: {
+  //         ...module.data,
+  //         script: 'on script db/memory db', // moduleの中からscriptを除外
+  //       },
+  //     });
 
-      // scriptの内容はdb.scriptに記憶。変更点の追跡が大変なので
-      // 一旦削除し上書きする。
-      // scriptの内容のうち、タグはmemoryに記憶する
-      this.db.scripts
-        .where('[botModuleId+doc]')
-        .equals([module.fsId, 'origin'])
-        .delete();
-      this.db.memory.where('botId').equals(module.fsId).delete();
-      for (const line of module.data.script) {
-        const m = line.text.match(RE_TAG_LINE);
-        if (m) {
-          await this.db.memory.put({
-            botId: module.data.botId,
-            moduleName: module.data.moduleName,
-            key: m[1],
-            value: m[2].split(','),
-            doc: line.doc || 'origin',
-          });
-        } else {
-          await this.db.scripts.add({
-            botModuleId: module.fsId,
-            doc: line.doc || 'origin', // もとのdocが定義されていない場合'origin'
-            text: line.text,
-          });
-        }
-      }
-    }
-  }
+  //     // scriptの内容はdb.scriptに記憶。変更点の追跡が大変なので
+  //     // 一旦削除し上書きする。
+  //     // scriptの内容のうち、タグはmemoryに記憶する
+  //     this.db.scripts
+  //       .where('[botModuleId+doc]')
+  //       .equals([module.fsId, 'origin'])
+  //       .delete();
+  //     this.db.memory.where('botId').equals(module.fsId).delete();
+  //     for (const line of module.data.script) {
+  //       const m = line.text.match(RE_TAG_LINE);
+  //       if (m) {
+  //         await this.db.memory.put({
+  //           botId: module.data.botId,
+  //           moduleName: module.data.moduleName,
+  //           key: m[1],
+  //           value: m[2].split(','),
+  //           doc: line.doc || 'origin',
+  //         });
+  //       } else {
+  //         await this.db.scripts.add({
+  //           botModuleId: module.fsId,
+  //           doc: line.doc || 'origin', // もとのdocが定義されていない場合'origin'
+  //           text: line.text,
+  //         });
+  //       }
+  //     }
+  //   }
+  // }
 
   /**
    * 指定されたmoduleの日付を現時刻に設定た
@@ -116,55 +116,55 @@ class BotDxIo extends Dbio {
       });
   }
 
-  /**
-   * indexedDBからscheme形式でデータを取得。
-   * script, memoryは含まない
-   * @param {String} botId チャットボットのId
-   * @return {Object} scheme形式のチャットボットデータ
-   */
-  async downloadDxScheme(botId) {
-    const scheme = {
-      updatedAt: new Date(0), // main,partsのうち最新のもの
-      botModules: [], // 内容は{id,data}
-    };
+  // /**
+  //  * indexedDBからscheme形式でデータを取得。
+  //  * script, memoryは含まない
+  //  * @param {String} botId チャットボットのId
+  //  * @return {Object} scheme形式のチャットボットデータ
+  //  */
+  // async downloadDxScheme(botId) {
+  //   const scheme = {
+  //     updatedAt: new Date(0), // main,partsのうち最新のもの
+  //     botModules: [], // 内容は{id,data}
+  //   };
 
-    const snaps = await this.db.botModules
-      .where(['data.botId', 'data.moduleName'])
-      .between([botId, Dexie.minKey], [botId, Dexie.maxKey])
-      .toArray();
-    for (const snap of snaps) {
-      if (snap.fsId) {
-        // scriptの取得
-        const moduleId = snap.fsId;
-        snap.data.script = await this.downloadDxScript(moduleId);
-        // memoryの取得
-        snap.data.memory = await this.downloadDxMemory(botId, snap.moduleName);
-      }
-      scheme.botModules.push(snap);
-      if (toString.call(snap.data.updatedAt) !== '[object Date]') {
-        snap.data.updatedAt = new Date(snap.data.updatedAt.seconds * 1000);
-      }
-      if (scheme.updatedAt < snap.data.updatedAt) {
-        scheme.updatedAt = snap.data.updatedAt;
-      }
-    }
+  //   const snaps = await this.db.botModules
+  //     .where(['data.botId', 'data.moduleName'])
+  //     .between([botId, Dexie.minKey], [botId, Dexie.maxKey])
+  //     .toArray();
+  //   for (const snap of snaps) {
+  //     if (snap.fsId) {
+  //       // scriptの取得
+  //       const moduleId = snap.fsId;
+  //       snap.data.script = await this.downloadDxScript(moduleId);
+  //       // memoryの取得
+  //       snap.data.memory = await this.downloadDxMemory(botId, snap.moduleName);
+  //     }
+  //     scheme.botModules.push(snap);
+  //     if (toString.call(snap.data.updatedAt) !== '[object Date]') {
+  //       snap.data.updatedAt = new Date(snap.data.updatedAt.seconds * 1000);
+  //     }
+  //     if (scheme.updatedAt < snap.data.updatedAt) {
+  //       scheme.updatedAt = snap.data.updatedAt;
+  //     }
+  //   }
 
-    return scheme;
-  }
+  //   return scheme;
+  // }
 
-  /**
-   * moduleNameを指定してbotIdのモジュールを取得.
-   * memory,scriptは含まない
-   * @param {String} botId チャットボットのId
-   * @param {String} moduleName モジュール名(file名)
-   * @return {Object} 取得したモジュール
-   */
-  async downloadDxModule(botId, moduleName) {
-    return await this.db.botModules
-      .where(['data.botId', 'data.moduleName'])
-      .equals([botId, moduleName])
-      .first();
-  }
+  // /**
+  //  * moduleNameを指定してbotIdのモジュールを取得.
+  //  * memory,scriptは含まない
+  //  * @param {String} botId チャットボットのId
+  //  * @param {String} moduleName モジュール名(file名)
+  //  * @return {Object} 取得したモジュール
+  //  */
+  // async downloadDxModule(botId, moduleName) {
+  //   return await this.db.botModules
+  //     .where(['data.botId', 'data.moduleName'])
+  //     .equals([botId, moduleName])
+  //     .first();
+  // }
 
   /**
    * ユーザが所有する、schemeNameのmoduleデータがあればそのbotIdを返す

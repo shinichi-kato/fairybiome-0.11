@@ -213,7 +213,7 @@ export async function findActiveBotId(firestore, userId, schemeName, gqSnap) {
  * @param {} fs // firestoreインスタンス
  * @param {} userId 
  */
-export async function syncActiveBot(gqSnap, fs, botId, userId) {
+export async function syncActiveBot(gqSnap, fs, botId, userId, tokenSnap) {
   const botDoc = await getBotDoc(fs, botId);
   const schemeName = botDoc.schemeName;
   const gqModifiedTime = getGqSchemeModifiedTime(gqSnap, schemeName);
@@ -243,6 +243,7 @@ export async function syncActiveBot(gqSnap, fs, botId, userId) {
   });
 
   // step 2: fs - dxを比べ、fsの方が新しいスクリプトはdxに書き込む
+  // 両方のタイムスタンプが同じ場合の処理は適切？要検討
   const newDxIndex = {};
   const dxIndex = await dxIO.getIndex(botId);
   for (const modName in newFsIndex) {
@@ -250,24 +251,53 @@ export async function syncActiveBot(gqSnap, fs, botId, userId) {
     const modData = await downloadFsModule(fs, botId, modName)
     if (!(modName in dxIndex.index)) {
       await dxIO.uploadModuleToDb(botId, modName, modData);
-      newDxIndex[modName] = newFsIndex[modName]
+      newDxIndex[modName] = newFsIndex[modName];
+      await dxIO.deleteCache(botId, modName);
     } else {
       for (const page in fsModIndex) {
         // fsのモジュールが新しいスクリプトはDxにコピー
-        if (!(fsModIndex[page] < dxIndex.index[modName][page])) {
+        const fspdate = fsModIndex[page];
+        const dxpdate = dxIndex.index[modName][page]
+        if (fspdate > dxpdate) {
           await dxIO.uploadModuleToDb(botId, modName, modData, page);
+
+          // cache更新の必要があるため削除
+          await dxIO.deleteCache(botId, modName);
+        }
+        if (fspdate >= dxpdate) {
           if (!(modName in newDxIndex)) {
             newDxIndex[modName] = {};
           }
           newDxIndex[modName][page] = fsModIndex[page];
         }
+
+        if (fsModIndex[page] < dxIndex.index[modName][page]) {
+          // dxのモジュールが新しい場合はfsにコピー
+          // page0を想定
+
+        }
       }
 
     }
   }
-
   await dxIO.deleteUnusedDxModule(botId, dxIndex, newDxIndex);
-  await dxIO.setIndex(botId, { schemeName: schemeName, userId: userId, index: newDxIndex });
+
+  // tokenのアップロード
+  let tokenModifiedTime = tokenSnap.modifiedTime;
+  if (!('tokenModifiedTime' in dxIndex)) {
+    await dxIO.writeTokens(tokenSnap.values);
+
+  } else if (dxIndex.tokenModifiedTime < tokenModifiedTime) {
+    await dxIO.writeTokens(tokenSnap.values);
+    tokenModifiedTime = dxIndex.tokenModifiedTime;
+  }
+
+  await dxIO.setIndex(botId, {
+    schemeName: schemeName,
+    userId: userId,
+    index: newDxIndex,
+    tokenModifiedTime: tokenModifiedTime
+  });
 
   return Object.keys(newDxIndex);
 }

@@ -80,7 +80,6 @@ export const main = {
     // const m = await botDxIo.downloadDxModule(botId, 'main');
     const d = await dxIO.downloadDxModule(botId, 'main');
 
-    console.log(d)
     // const d = m.data;
     main.worker = worker;
     main.botId = botId;
