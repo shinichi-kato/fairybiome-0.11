@@ -11,9 +11,9 @@ matrix
 {DEFALUT_AVATAR} xxx (optional)
 {userTag} ,... (optional)
 with {?tag} 指定したタグはユーザ発言には暗黙的に必ず付属するとみなす
-user text (12/20 13:00) ユーザ入力
-peace text (13:12) チャットボットの返答（avatar指定)
-bot text
+user text\ttimestamp ユーザ入力
+peace text\ttimestamp チャットボットの返答（avatar指定)
+bot text\ttimestamp
 cue tag
 ```
 # で始まる行はコメント行で無視する。
@@ -22,11 +22,10 @@ cue tag
 with で始まる行はユーザの発言には暗黙的にwithより後ろの内容が続くとみなす。
 
 コーパス部分は以下の書式。
-user text{ecoState} {timestamp}
+user text{ecoState}\t{timestamp}
 {ecoState}は天候、場所などecosystemが提供する状態を示すタグ。
 timestampを追加すると、特徴量として扱われる。timestampは
-日付を指定するには(MM/DD)、時刻は(hh:mm)、 日付と時刻を同時に
-指定する際は(MM/DD hh:mm)という形式で記載する。
+timestamp.toValue()で得られる値(msec)
 
 会話ログは加工せず辞書化できるようにする。そのため
 1. user行が連続したらbotのpromptを挟む
@@ -272,7 +271,7 @@ export function matrixize(inScript, params, noder) {
     wordVocabLength: wordVocabKeys.length,
     condVocabLength: condVocabKeys.length,
     wordVocab: wordVocab,
-    condVocab: condVocab,
+    condVocab: condVocab === 0 ? zeros(1, 1) : condVocab,
     wordMatrix: wv,
     condMatrix: cv,
     timeMatrix: timeMatrix,
@@ -332,17 +331,249 @@ export function tee(script) {
 }
 
 /**
- * パートスクリプトの前処理 ver2
+ * パートスクリプトの前処理
  * @param {Array} script パートスクリプト
  * @param {Array} validAvatars 有効なavatarのリスト
  * @param {String} defaultAvatar 「bot」で始まる行で使うavatar
  * @return {array} [前処理済みスクリプト,エラー]
  */
 export function preprocess(script, validAvatars, defaultAvatar) {
+  /* スクリプトはuploadされるときにタグ定義文が削除され、タグ定義は
+     db.memoryに格納される。
+
+     preprocessはは以下のフォーマットに従ったscriptを仮定する。
+     [
+      {
+        text:"head text{ecoState}",
+        timestamp: timestamp
+      },...
+     ]
+     head: "bot", validAvatars, "user", "cue"のいずれか
+     text: 台詞
+     timstamp: 発言の行われた日付時刻(valueOf()形式)
+     ecoState: 天候とロケーションの情報をコード化したもの
+     textは必須でtimestamp,ecoStateはoptional
+
+
+     scriptに対して以下の処理を行う。
+     ・with行に書かれた内容は以降のline末尾にコピーされる。
+     ・一つの話題をブロックと呼び、
+       ブロックは空行、eco行で区切られる。
+     ・userの連続した発言は間にbot {prompt}行を自動で追加する。
+     ・botの連続した発言は\nで区切られた一つの行に統合する。
+     ・botで始まる行は{DEFAULT_AVATAR}で定義されるavatarに読み替える
+     ・validAvatarsにないvatarが指定されたらdefaultAvatarに読み替える
+     ・blockにuser行もenv行も含まれない場合前のブロックの続きとみなす
+     ・blockにbot行が含まれない場合{prompt}で補う
+     ・block末尾のoutScriptに{DEACTIVATE}を追加する
+
+
+     出力する中間スクリプトは以下のフォーマットに従う
+     [
+      [                         # block
+        [head,text,timestamp],  # corpus
+        ...
+      ],
+      ...
+     ]
+  */
+  const newScript = [];
+  let withLine = '';
+  let prevKind = null;
+  let block = [];
+  let isCueOrUserExists = false;
+  let isBotExists = false;
+  const errors = [];
+
+  const parseLine = (line) => {
+    let head = '';
+    let text = '';
+    let ts = null;
+    let date = null;
+    let time = null;
+
+    if ('head' in line) {
+      head = line.head;
+      text = line.text;
+    } else if (line.text !== '') {
+      const pos = line.text.indexOf(' ');
+      head = line.text.slice(0, pos);
+      text = line.text.slice(pos + 1);
+    }
+
+    if ('timestamp' in line) {
+      if ('seconds' in line.timestamp) {
+        ts = new Date(line.timestamp.seconds * 1000);
+      } else {
+        ts = line.timestamp;
+      }
+    } else {
+      [text, ts] = text.split('\t', 2);
+      ts = ts ? new Date(Number(ts)) : null;
+
+      const m = text.match(RE_DATETIME);
+      if (m) {
+        if (m[1]) {
+          time = timeStr2dateRad(m[1]);
+        }
+        if (m[2]) {
+          date = dateStr2yearRad(m[2]);
+        }
+        text = text.replace(RE_DATETIME, '');
+        ts = [date, time]
+      }
+    }
+
+    return [head, text, ts, line.doc];
+  };
+
+  const isBlockStructureOk = (i) => {
+    if (!isCueOrUserExists) {
+      errors.push(`${i}行目: ブロックに cueまたはuser行が含まれていません`);
+      return false;
+    }
+    if (!isBotExists) {
+      errors.push(`${i}行目: ブロックに botの発言行が含まれていません`);
+      return false;
+    }
+    if (prevKind !== KIND_BOT) {
+      errors.push(`${i}行目: ブロック末尾がbotの発言行になっていません`);
+      return false;
+    }
+    return true;
+  };
+
+  // headのbot指定
+  const scriptAvatars = {
+    bot: defaultAvatar,
+    peace: 'peace',
+  };
+
+  for (const va of validAvatars) {
+    scriptAvatars[va] = va;
+  }
+
+  for (let i = 0, l = script.length; i < l; i++) {
+    const parsed = parseLine(script[i]);
+    let [head, text, timestamp, doc] = parsed;
+    // タグ業は飛ばす
+    if (head.startsWith('{')) {
+      continue;
+    }
+
+    // コメント行は飛ばす
+    if (head.startsWith('#')) {
+      continue;
+    }
+    // with文
+    if (head === 'with') {
+      withLine = text;
+      continue;
+    }
+    // avatar文
+    if (head === 'avatar') {
+      scriptAvatars.bot = text;
+      continue;
+    }
+
+    // 空行はブロックのはじめとみなす
+    if (text.match(RE_BLANK_LINE)) {
+      if (block.length !== 0 && isBlockStructureOk(i)) {
+        // ブロック末尾のbot発言に{DEACTIVATE}を挿入
+        const bl = block.length - 1;
+        block[bl][1] += '{DEACTIVATE}';
+
+        // ブロックをnewScriptに追加
+        newScript.push([...block]);
+        block = [];
+        isBotExists = false;
+        isCueOrUserExists = false;
+        prevKind = null;
+
+      }
+      continue;
+    }
+
+
+    // cue行
+    if (head === 'cue') {
+      // cue行はブロックのはじめとみなす
+      if (block.length !== 0 && isBlockStructureOk(i)) {
+        // ブロック末尾のbot発言に{DEACTIVATE}を挿入
+        const bl = block.length - 1;
+        block[bl][1] += '{DEACTIVATE}';
+
+        newScript.push([...block]);
+        block = [];
+        isBotExists = false;
+        isCueOrUserExists = false;
+      }
+      block.push([head, text + withLine, timestamp, doc]);
+      isCueOrUserExists = true;
+      prevKind = KIND_CUE;
+      continue;
+    }
+
+    // user行
+    if (head === 'user') {
+      if (prevKind === KIND_USER) {
+        // user行が連続する場合は{prompt}を挟む
+        block.push(['peace', `{prompt}${withLine}`, null, doc]);
+      }
+      block.push([head, text + withLine, timestamp, doc]);
+      prevKind = KIND_USER;
+      isCueOrUserExists = true;
+      continue;
+    }
+
+    // bot行
+    if (head in scriptAvatars) {
+      parsed[0] = scriptAvatars[head];
+
+      if (prevKind === KIND_BOT) {
+        // bot行が連続したら一つにまとめる
+        const bl = block.length - 1;
+        block[bl][1] += `\n${text}`;
+      } else {
+        block.push([head, text, null, doc]);
+      }
+      isBotExists = true;
+      prevKind = KIND_BOT;
+      continue;
+    }
+    errors.push(`${i}行目:${head} ${text} ${timestamp}は正常ではありません`);
+  }
+
+  if (block.length !== 0) {
+    newScript.push(block);
+  }
+
+  if (prevKind !== KIND_BOT) {
+    // 最後はbot行で終わること
+    errors.push(
+      `最終行${script[script.length - 1]}がbotの発言になっていません`
+    );
+  }
+  console.log(newScript)
+  return {
+    script: newScript,
+    status: errors.length === 0 ? 'ok' : 'error',
+    errors: errors,
+  };
+}
+
+/**
+ * パートスクリプトの前処理 ver2
+ * @param {Array} script パートスクリプト
+ * @param {Array} validAvatars 有効なavatarのリスト
+ * @param {String} defaultAvatar 「bot」で始まる行で使うavatar
+ * @return {array} [前処理済みスクリプト,エラー]
+ */
+export function preprocess2(script, validAvatars, defaultAvatar) {
   /*
   スクリプトはuploadされるときタグ定義文と分離され、scriptには
   origin,page0などのソースデータが格納される。
-  preprocessは以下のフォーマットに従ったscriptを仮定する。
+  preprocess2は以下のフォーマットに従ったscriptを仮定する。
   [
     {i: 行番号, line: 行の内容 }, ...
   ]

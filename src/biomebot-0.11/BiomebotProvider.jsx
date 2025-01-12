@@ -122,7 +122,10 @@ const getChatbotSnap = (biomebotSnap) => {
       p.sourceInstanceName === 'botModules' &&
       p.relativeDirectory !== '_loading'
     ) {
-      snap.push(node.parent);
+      snap.push({
+        ...node.parent,
+        modifiedTime: new Date(node.parent.modifiedTime),
+      });
     }
   });
   return snap;

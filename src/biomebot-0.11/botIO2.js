@@ -223,11 +223,16 @@ export async function syncActiveBot(gqSnap, fs, botId, userId, tokenSnap) {
   const gqModData = gqSnap.filter((n) => n.relativeDirectory === schemeName);
 
   const newFsIndex = {};
+  let avatarDir;
   const fsIndex = botDoc.index || {};
   for (const modName in gqModifiedTime) {
     // modがindexにないか、モジュールのoriginが新しかったらすべて上書き
     if (!(modName in fsIndex && fsIndex[modName.origin] < gqModifiedTime[modName])) {
-      newFsIndex[modName] = await uploadGqModuleToFs(gqModData, fs, modName, botId);
+      const result = await uploadGqModuleToFs(gqModData, fs, modName, botId);
+      newFsIndex[modName] = result.index;
+      if (result.avatarDir) {
+        avatarDir = result.avatarDir;
+      }
     }
   }
 
@@ -239,7 +244,8 @@ export async function syncActiveBot(gqSnap, fs, botId, userId, tokenSnap) {
   await setDoc(docRef, {
     userId: userId,
     schemeName: schemeName,
-    index: { ...newFsIndex }
+    index: { ...newFsIndex },
+    avatarDir: avatarDir
   });
 
   // step 2: fs - dxを比べ、fsの方が新しいスクリプトはdxに書き込む
@@ -334,9 +340,12 @@ async function uploadGqModuleToFs(gqModsData, fs, modName, botId) {
   // phase2: page0 (page nは保留)
 
   // gqModDataは全moduleを含む。その中からnameがmodNameに一致するものを探す
+  // adminのためsettingsのavatarDir情報はコピーをdocに書き込む
+
   let scripts = [{}, {}, {}, {}, {}];
   let gqModData = {};
   let i = 0;
+  let avatarDir;
   for (const mod of gqModsData) {
     if (mod.name === modName) {
       gqModData = JSON.parse(mod.internal.content);
@@ -370,6 +379,7 @@ async function uploadGqModuleToFs(gqModsData, fs, modName, botId) {
         });
 
         index.settings = mod.modifiedTime;
+        avatarDir = gqModData.settings.avatarDir;
       }
 
       if (scripts[0].length !== 0) {
@@ -389,7 +399,7 @@ async function uploadGqModuleToFs(gqModsData, fs, modName, botId) {
       }
       await batch.commit();
 
-      return index;
+      return { index: index, avatarDir: avatarDir };
     }
   }
 }

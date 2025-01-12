@@ -221,7 +221,7 @@ export const part = {
     // 入力文字列に含まれるwordタグを記憶
     await part._spotWord(part.latestInput.text);
 
-    const line = part.source.outScript[action.index];
+    const line = part.outScript[action.index];
     // line = [head,text]
     const head = line[0];
     let text = line[1];
@@ -279,18 +279,8 @@ export const part = {
     // scriptをDBから取得。形式は[{test,timestamp}]
     // const script = await botDxIo.downloadDxScript(part.moduleId);
     const script = await dxIO.downloadDxScriptByName(part.botId, part.moduleName);
-    const cached = await dxIO.readSource(part.botId, part.moduleName);
-    console.log(cached)
-    if (cached) {
-      console.log(`${part.moduleName}: using cache`)
-      part.source = {
-        moduleName: part.moduleName,
-        ...cached
-      }
-      return;
-    }
 
-    const stage1 = matrix.preprocess(
+    const stage1 = matrix.preprocess2(
       script,
       part.validAvatars,
       part.defaultAvatar,
@@ -300,16 +290,11 @@ export const part = {
     const stage2 = matrix.tee(stage1.script);
     console.assert(stage2.status === 'ok', part.moduleName, stage2.errors);
 
-    // part.outScript = stage2.outScript;
-    const stage3 = matrix.matrixize(stage2.inScript, part.calcParams, part.noder);
-
+    part.outScript = stage2.outScript;
     part.source = {
       moduleName: part.moduleName,
-      outScript: stage2.outScript,
-      ...stage3,
+      ...matrix.matrixize(stage2.inScript, part.calcParams, part.noder),
     };
-
-    dxIO.cacheSource(part.botId, part.source);
   },
 
   /**
