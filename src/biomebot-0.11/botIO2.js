@@ -460,7 +460,7 @@ async function deleteUnusedFsModule(fs, botId, fsIndex, gqModifiedTime) {
 /**
  * fs上のmodule一つ分のデータをダウンロード
  */
-async function downloadFsModule(fs, botId, moduleName) {
+export async function downloadFsModule(fs, botId, moduleName) {
   let data = {};
   const docRef = doc(fs, "chatbots", botId, "botModules", moduleName);
   const docSnap = await getDoc(docRef);

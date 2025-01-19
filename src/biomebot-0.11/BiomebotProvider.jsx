@@ -69,7 +69,6 @@ import {useStaticQuery, graphql} from 'gatsby';
 import {collection, addDoc /*serverTimestamp*/} from 'firebase/firestore';
 
 import {AuthContext} from '../components/Auth/AuthProvider';
-// import {syncCache, findDefaultBotId} from './botio';
 import {findActiveBotId, syncActiveBot} from './botIO2';
 
 import MainWorker from './worker/main.worker';
