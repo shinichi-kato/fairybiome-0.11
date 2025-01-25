@@ -315,6 +315,7 @@ export default function AdminPage() {
             {state.page === 'botProperty' &&
               <BotProperty
                 firestore={firestore}
+                schemeName={state.targetScheme}
                 instance={state.instances[state.targetScheme][state.targetUserId]}
               />
             }

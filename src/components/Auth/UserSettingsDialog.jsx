@@ -194,7 +194,8 @@ export default function UserSettingsDialog({
             variant='contained'
             disabled={
               authState === 'UserSettingsDialog:waiting' ||
-              state.displayName === ''
+              state.displayName === '' ||
+              !state.displayName
             }
             type='submit'
           >
