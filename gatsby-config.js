@@ -73,6 +73,7 @@ module.exports = {
       '#c4736e', // red
       '#9e88aa', // purple
     ],
-    balloonBackgroundAlpha: 0.8
+    balloonBackgroundAlpha: 0.8,
+    command: process.argv
   },
 };

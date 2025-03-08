@@ -1,0 +1,12 @@
+{
+  "script": [
+    "# ニックネームをつける",
+    "",
+    "user {DO_YOU_HAVE_A_NICKNAME}{!Has_nickname}",
+    "bot ないよ！どんな名前がいいと思う？",
+    "",
+    "user {DO_YOU_HAVE_A_NICKNAME}{Has_nickname}",
+    "bot 私のニックネームは{NICKNAME}だよ。",
+    ""
+  ]
+}

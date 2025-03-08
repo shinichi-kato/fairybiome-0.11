@@ -464,7 +464,7 @@ export default function BiomebotProvider({
         }
       }
     };
-  }, [state.channel, auth.uid]);
+  }, [state.channel, auth.uid, schemeName, summon]);
 
   // -----------------------------------------------------------
   // deployしたチャットボットの起動

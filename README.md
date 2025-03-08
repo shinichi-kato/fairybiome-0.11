@@ -44,6 +44,12 @@ curl -sL https://firebase.tools | bash
 firebase login
 ```
 
+firebaseの Project ID が得られたら、
+```
+firebase use <Project ID>
+```
+を実行してください。
+
 プロジェクトディレクトリに`.env.local`というファイルを作成し、firebaseから取得したクレデンシャル情報を以下のように転記します。Gatsbyではプログラム内で使える環境変数は先頭がGATSBY_から始まっている必要があるため、以下のような名前にします。
 ```
   GATSBY_FIREBASE_API_KEY=xxxxxxxxxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxx
@@ -55,7 +61,7 @@ firebase login
   GATSBY_FIREBASE_MEASUREMENT_ID=x-xxxxxxxxxx
 ```
 
-さらにソースコードをgithub上に置く場合はリポジトリ本体にはセキュリティのためクレデンシャル情報を置かず、変わりに
+さらにソースコードをgithub上に置く場合はリポジトリ本体にはセキュリティのためクレデンシャル情報を置かず、代わりに
 Settings - Secrets and variables - Repository secretsに以下の変数を作り、
 firebaseから取得したクレデンシャルを転記します。
 
@@ -79,5 +85,9 @@ gatsby develop
 github上ではfirebaseへのデプロイも自動化されているため、おすすめです。その場合githubへプッシュするだけでfirebase上でのビルドとデプロイが進みます。
 
 # Usage
+urlで会話する妖精を指定できる。
+```
+locahost:8000?schmeName=aurula
+```
 
 # Note
